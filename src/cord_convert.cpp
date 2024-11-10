@@ -29,7 +29,6 @@ class CoordinateTransformer : public rclcpp::Node {
         rclcpp::Service<farmbot_interfaces::srv::Gps2Ecef>::SharedPtr gps2ecef_service_;
         rclcpp::Service<farmbot_interfaces::srv::Gps2Enu>::SharedPtr gps2enu_service_;
         std::string name;
-        std::string topic_prefix_param;
         bool datum_set;
     public:
         CoordinateTransformer() : Node(
@@ -39,39 +38,38 @@ class CoordinateTransformer : public rclcpp::Node {
             .automatically_declare_parameters_from_overrides(true)
         ){
             name = this->get_parameter_or<std::string>("name", "using_enu");
-            topic_prefix_param = this->get_parameter_or<std::string>("topic_prefix", "/fb");
 
 
             ecef2enu_service_ = this->create_service<farmbot_interfaces::srv::Ecef2Enu>(
-                topic_prefix_param + "/loc/ecef2enu", std::bind(&CoordinateTransformer::ecef2enuCallback, this, _1, _2));
-            
+                "loc/ecef2enu", std::bind(&CoordinateTransformer::ecef2enuCallback, this, _1, _2));
+
             ecef2gps_service_ = this->create_service<farmbot_interfaces::srv::Ecef2Gps>(
-                topic_prefix_param + "/loc/ecef2gps", std::bind(&CoordinateTransformer::ecef2gpsCallback, this, _1, _2));
-            
+                "loc/ecef2gps", std::bind(&CoordinateTransformer::ecef2gpsCallback, this, _1, _2));
+
             enu2ecef_service_ = this->create_service<farmbot_interfaces::srv::Enu2Ecef>(
-                topic_prefix_param + "/loc/enu2ecef", std::bind(&CoordinateTransformer::enu2ecefCallback, this, _1, _2));
-            
+                "loc/enu2ecef", std::bind(&CoordinateTransformer::enu2ecefCallback, this, _1, _2));
+
             enu2gps_service_ = this->create_service<farmbot_interfaces::srv::Enu2Gps>(
-                topic_prefix_param + "/loc/enu2gps", std::bind(&CoordinateTransformer::enu2gpsCallback, this, _1, _2));
-            
+                "loc/enu2gps", std::bind(&CoordinateTransformer::enu2gpsCallback, this, _1, _2));
+
             gps2ecef_service_ = this->create_service<farmbot_interfaces::srv::Gps2Ecef>(
-                topic_prefix_param + "/loc/gps2ecef", std::bind(&CoordinateTransformer::gps2ecefCallback, this, _1, _2));
-            
+                "loc/gps2ecef", std::bind(&CoordinateTransformer::gps2ecefCallback, this, _1, _2));
+
             gps2enu_service_ = this->create_service<farmbot_interfaces::srv::Gps2Enu>(
-                topic_prefix_param + "/loc/gps2enu", std::bind(&CoordinateTransformer::gps2enuCallback, this, _1, _2));
+                "loc/gps2enu", std::bind(&CoordinateTransformer::gps2enuCallback, this, _1, _2));
 
             geo_datum_sub_ = this->create_subscription<sensor_msgs::msg::NavSatFix>(
-                topic_prefix_param + "/loc/ref/geo", 10, [this](const sensor_msgs::msg::NavSatFix::SharedPtr msg) {
+                "loc/ref/geo", 10, [this](const sensor_msgs::msg::NavSatFix::SharedPtr msg) {
                     datum_set = true;
                     geo_datum = *msg;
                 });
-            
+
             ecef_datum_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-                topic_prefix_param + "/loc/ref", 10, [this](const nav_msgs::msg::Odometry::SharedPtr msg) {
+                "loc/ref", 10, [this](const nav_msgs::msg::Odometry::SharedPtr msg) {
                     // datum_set = true;
                     ecef_datum = *msg;
                 });
-            
+
             RCLCPP_INFO(this->get_logger(), "Coordinate Transformer Node started");
         }
 

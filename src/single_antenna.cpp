@@ -104,7 +104,6 @@ class AntennaSplit : public rclcpp::Node {
         KalmanFilter back_filter = KalmanFilter(process_noise, measurement_noise);
 
         std::string name;
-        std::string topic_prefix_param;
         std::string gps_sub_topic;
         std::string gps_main_pub_topic;
         std::string gps_aux_pub_topic;
@@ -122,13 +121,11 @@ class AntennaSplit : public rclcpp::Node {
             rclcpp::NodeOptions()
             .allow_undeclared_parameters(true)
             .automatically_declare_parameters_from_overrides(true)
-        ){   
+        ){
             try {
-                name = this->get_parameter("name").as_string(); 
-                topic_prefix_param = this->get_parameter("topic_prefix").as_string();
+                name = this->get_parameter("name").as_string();
             } catch (...) {
                 name = "single_antenna";
-                topic_prefix_param = "/fb";
             }
 
             //try to get the parameters of gps_topic, gps_main, gps_aux, and kallman_type
@@ -143,17 +140,17 @@ class AntennaSplit : public rclcpp::Node {
                 kallman_type = kallman_type_param.as_int();
             } catch(const std::exception& e) {
                 RCLCPP_WARN(this->get_logger(), "Could not find one of those parameters: gps_topic, gps_main, gps_aux, kallman_type, using defaults");
-                gps_sub_topic = "/gps";
-                gps_main_pub_topic = topic_prefix_param + "/gps_main";
-                gps_aux_pub_topic = topic_prefix_param + "/gps_aux";
+                gps_sub_topic = "gps";
+                gps_main_pub_topic = "gps_main";
+                gps_aux_pub_topic = "gps_aux";
                 kallman_type = 0;
             }
 
             gps_sub_ = this->create_subscription<sensor_msgs::msg::NavSatFix>(gps_sub_topic, 10, std::bind(&AntennaSplit::callback, this, std::placeholders::_1));
-            gps_front_ = this->create_publisher<sensor_msgs::msg::NavSatFix>(topic_prefix_param + gps_main_pub_topic, 10);
-            gps_back_ = this->create_publisher<sensor_msgs::msg::NavSatFix>(topic_prefix_param + gps_aux_pub_topic, 10);
+            gps_front_ = this->create_publisher<sensor_msgs::msg::NavSatFix>(gps_main_pub_topic, 10);
+            gps_back_ = this->create_publisher<sensor_msgs::msg::NavSatFix>(gps_aux_pub_topic, 10);
 
-            thresh_ser_ = this->create_service<farmbot_interfaces::srv::Threshold>(topic_prefix_param + "/gps_fuse_dist", std::bind(&AntennaSplit::thresh_callback, this, std::placeholders::_1, std::placeholders::_2));
+            thresh_ser_ = this->create_service<farmbot_interfaces::srv::Threshold>("gps_fuse_dist", std::bind(&AntennaSplit::thresh_callback, this, std::placeholders::_1, std::placeholders::_2));
         }
 
     private:
@@ -206,7 +203,7 @@ class AntennaSplit : public rclcpp::Node {
                 positions[0].header.stamp = gps->header.stamp;
                 gps_front_->publish(main_gps);
                 gps_back_->publish(positions[0]);
-            } 
+            }
         }
         void thresh_callback(const std::shared_ptr<farmbot_interfaces::srv::Threshold::Request> _request, std::shared_ptr<farmbot_interfaces::srv::Threshold::Response> _response) {
             threshold = _request->distance.data;

@@ -15,11 +15,10 @@ class TransformPub : public rclcpp::Node {
         rclcpp::TimerBase::SharedPtr transform_timer_;
 
         std::string name;
-        std::string topic_prefix_param;
 
         std::unique_ptr<tf2_ros::TransformBroadcaster> base_tf;
         std::unique_ptr<tf2_ros::StaticTransformBroadcaster> odom_tf;
-        std::unique_ptr<tf2_ros::StaticTransformBroadcaster> map_tf; 
+        std::unique_ptr<tf2_ros::StaticTransformBroadcaster> map_tf;
 
     public:
         TransformPub() : Node(
@@ -31,15 +30,13 @@ class TransformPub : public rclcpp::Node {
             RCLCPP_INFO(this->get_logger(), "Starting TransformPub node");
 
             try {
-                name = this->get_parameter("name").as_string(); 
-                topic_prefix_param = this->get_parameter("topic_prefix").as_string();
+                name = this->get_parameter("name").as_string();
             } catch (...) {
                 name = "transform_pub";
-                topic_prefix_param = "/fb";
             }
 
-            odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(topic_prefix_param + "/loc/odom", 10, std::bind(&TransformPub::base_transform, this, std::placeholders::_1));
-            ecef_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(topic_prefix_param + "/loc/ref", 10, std::bind(&TransformPub::ecef_callback, this, std::placeholders::_1));
+            odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>("loc/odom", 10, std::bind(&TransformPub::base_transform, this, std::placeholders::_1));
+            ecef_sub_ = this->create_subscription<nav_msgs::msg::Odometry>("loc/ref", 10, std::bind(&TransformPub::ecef_callback, this, std::placeholders::_1));
             transform_timer_ = this->create_wall_timer(std::chrono::milliseconds(10000), std::bind(&TransformPub::ecef_timer, this));
 
             base_tf = std::make_unique<tf2_ros::TransformBroadcaster>(this);

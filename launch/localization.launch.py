@@ -14,7 +14,7 @@ def launch_setup(context, *args, **kwargs):
     param_file = os.path.join(get_package_share_directory('farmbot_localization'), 'config', 'params.yaml')
 
     nodes_array = []
-    
+
     single_antenna = Node(
         package='farmbot_localization',
         namespace=namespace,
@@ -23,7 +23,7 @@ def launch_setup(context, *args, **kwargs):
         parameters=[
             {"frame_prefix": namespace+"/"},
             {"namespace": namespace},
-            yaml.safe_load(open(param_file))['single_antenna']['ros__parameters'], 
+            yaml.safe_load(open(param_file))['single_antenna']['ros__parameters'],
             yaml.safe_load(open(param_file))['global']['ros__parameters']
         ]
     )
@@ -36,9 +36,9 @@ def launch_setup(context, *args, **kwargs):
         parameters=[
             {"frame_prefix": namespace+"/"},
             {"namespace": namespace},
-            yaml.safe_load(open(param_file))['dual_antenna']['ros__parameters'], 
+            yaml.safe_load(open(param_file))['dual_antenna']['ros__parameters'],
             yaml.safe_load(open(param_file))['global']['ros__parameters']
-        ]    
+        ]
     )
 
     fix_n_bearing = Node(
@@ -49,9 +49,9 @@ def launch_setup(context, *args, **kwargs):
         parameters=[
             {"frame_prefix": namespace+"/"},
             {"namespace": namespace},
-            yaml.safe_load(open(param_file))['fix_n_bearing']['ros__parameters'], 
+            yaml.safe_load(open(param_file))['fix_n_bearing']['ros__parameters'],
             yaml.safe_load(open(param_file))['global']['ros__parameters']
-        ]    
+        ]
     )
 
 
@@ -74,9 +74,9 @@ def launch_setup(context, *args, **kwargs):
         parameters=[
             {"frame_prefix": namespace+"/"},
             {"namespace": namespace},
-            yaml.safe_load(open(param_file))['using_enu']['ros__parameters'], 
+            yaml.safe_load(open(param_file))['using_enu']['ros__parameters'],
             yaml.safe_load(open(param_file))['global']['ros__parameters'],
-        ]    
+        ]
     )
     nodes_array.append(using_enu)
 
@@ -88,9 +88,9 @@ def launch_setup(context, *args, **kwargs):
         parameters=[
             {"frame_prefix": namespace+"/"},
             {"namespace": namespace},
-            yaml.safe_load(open(param_file))['odom_n_path']['ros__parameters'], 
+            yaml.safe_load(open(param_file))['odom_n_path']['ros__parameters'],
             yaml.safe_load(open(param_file))['global']['ros__parameters']
-        ]    
+        ]
     )
     nodes_array.append(odom_n_path)
 
@@ -102,7 +102,7 @@ def launch_setup(context, *args, **kwargs):
         parameters=[
             {"frame_prefix": namespace+"/"},
             {"namespace": namespace},
-            yaml.safe_load(open(param_file))['transform_pub']['ros__parameters'], 
+            yaml.safe_load(open(param_file))['transform_pub']['ros__parameters'],
             yaml.safe_load(open(param_file))['global']['ros__parameters']
         ]
     )
@@ -116,7 +116,7 @@ def launch_setup(context, *args, **kwargs):
         parameters=[
             {"frame_prefix": namespace+"/"},
             {"namespace": namespace},
-            yaml.safe_load(open(param_file))['cord_convert']['ros__parameters'], 
+            yaml.safe_load(open(param_file))['cord_convert']['ros__parameters'],
             yaml.safe_load(open(param_file))['global']['ros__parameters']
         ]
     )
@@ -125,12 +125,12 @@ def launch_setup(context, *args, **kwargs):
     return nodes_array
 
 
-def generate_launch_description(): 
-    namespace_arg = DeclareLaunchArgument('namespace', default_value='fb')
+def generate_launch_description():
+    namespace_arg = DeclareLaunchArgument('namespace', default_value='fbot')
     antena_arg = DeclareLaunchArgument('double_antenna', default_value='True')
-    
+
     return LaunchDescription([
         namespace_arg,
-        antena_arg, 
+        antena_arg,
         OpaqueFunction(function = launch_setup)
     ])

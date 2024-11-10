@@ -1,48 +1,47 @@
 global:
-  ros__parameters:
-    topic_prefix: '/fb'
-    localization_type: "fix_n_bearing" # "single_antenna" or "dual_antenna" or "fix_n_bearing"
-    autodatum: true
+    ros__parameters:
+        localization_type: "fix_n_bearing" # "single_antenna" or "dual_antenna" or "fix_n_bearing"
+        autodatum: true
 
 single_antenna:
-  ros__parameters:
-    name: 'single_antenna'
-    #input_topic:
-    gps_topic: '/gps'
-    #output_topics:
-    gps_main: '/gps_main'
-    gps_aux: '/gps_aux'
-    kallman_type: 1
+    ros__parameters:
+        name: "single_antenna"
+        #input_topic:
+        gps_topic: "gps"
+        #output_topics:
+        gps_main: "gps_main"
+        gps_aux: "gps_aux"
+        kallman_type: 1
 
 dual_antenna:
-  ros__parameters:
-    name: 'dual_antenna'
-    #input_topics:
-    gps_main: '/gps_main'
-    gps_aux: '/gps_aux'
-    angle_gpses: 90.0
+    ros__parameters:
+        name: "dual_antenna"
+        #input_topics:
+        gps_main: "gps_main"
+        gps_aux: "gps_aux"
+        angle_gpses: 90.0
 
 fix_n_bearing:
-  ros__parameters:
-    name: 'fix_n_bearings'
-    #input_topics:
-    gps_corr: '/Robotti/gps_center'
-    angle_deg: '/angle_rad'
+    ros__parameters:
+        name: "fix_n_bearings"
+        #input_topics:
+        gps_corr: "gps_center"
+        angle_deg: "angle_rad"
 
 using_enu:
-  ros__parameters:
-    name: 'using_enu'
-    #input_topics:
-    gps_lock_time: 5
+    ros__parameters:
+        name: "using_enu"
+        #input_topics:
+        gps_lock_time: 5
 
 odom_n_path:
-  ros__parameters:
-    name: 'odometry'
+    ros__parameters:
+        name: "odometry"
 
 transform_pub:
-  ros__parameters:
-    name: 'transform_pub'
+    ros__parameters:
+        name: "transform_pub"
 
 cord_convert:
-  ros__parameters:
-    name: 'cord_convert'
+    ros__parameters:
+        name: "cord_convert"

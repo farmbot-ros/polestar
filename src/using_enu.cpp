@@ -23,15 +23,14 @@ class Gps2Enu : public rclcpp::Node {
         nav_msgs::msg::Odometry ecef_datum;
         bool datum_set = false;
         int gps_lock_time = 10;
-        
+
         std::string name;
-        std::string topic_prefix_param;
         bool autodatum;
 
         rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr fix_sub_;
 
         rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr ecef_pub_;
-        rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr enu_pub_;        
+        rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr enu_pub_;
         rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr geo_dat_pub_;
         rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr ecef_datum_pub_;
 
@@ -51,18 +50,17 @@ class Gps2Enu : public rclcpp::Node {
             RCLCPP_INFO(this->get_logger(), "Starting GPS2ENU Node");
 
             name = this->get_parameter_or<std::string>("name", "using_enu");
-            topic_prefix_param = this->get_parameter_or<std::string>("topic_prefix", "/fb");
             autodatum = this->get_parameter_or<bool>("autodatum", false);
 
-            fix_sub_ = this->create_subscription<sensor_msgs::msg::NavSatFix>(topic_prefix_param + "/loc/fix", 10, std::bind(&Gps2Enu::callback, this, std::placeholders::_1));
-            
-            ecef_pub_ = this->create_publisher<nav_msgs::msg::Odometry>(topic_prefix_param + "/loc/ecef", 10);
-            enu_pub_ = this->create_publisher<nav_msgs::msg::Odometry>(topic_prefix_param + "/loc/enu", 10);
-            ecef_datum_pub_ = this->create_publisher<nav_msgs::msg::Odometry>(topic_prefix_param + "/loc/ref", 10);
-            geo_dat_pub_ = this->create_publisher<sensor_msgs::msg::NavSatFix>(topic_prefix_param + "/loc/ref/geo", 10);
+            fix_sub_ = this->create_subscription<sensor_msgs::msg::NavSatFix>("loc/fix", 10, std::bind(&Gps2Enu::callback, this, std::placeholders::_1));
 
-            datum_gps_ = this->create_service<farmbot_interfaces::srv::Datum>(topic_prefix_param + "/datum", std::bind(&Gps2Enu::datum_gps_callback, this, std::placeholders::_1, std::placeholders::_2));
-            datum_set_ = this->create_service<farmbot_interfaces::srv::Trigger>(topic_prefix_param + "/datum/set", std::bind(&Gps2Enu::datum_set_callback, this, std::placeholders::_1, std::placeholders::_2));
+            ecef_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("loc/ecef", 10);
+            enu_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("loc/enu", 10);
+            ecef_datum_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("loc/ref", 10);
+            geo_dat_pub_ = this->create_publisher<sensor_msgs::msg::NavSatFix>("loc/ref/geo", 10);
+
+            datum_gps_ = this->create_service<farmbot_interfaces::srv::Datum>("datum", std::bind(&Gps2Enu::datum_gps_callback, this, std::placeholders::_1, std::placeholders::_2));
+            datum_set_ = this->create_service<farmbot_interfaces::srv::Trigger>("datum/set", std::bind(&Gps2Enu::datum_set_callback, this, std::placeholders::_1, std::placeholders::_2));
 
             info_timer_ = this->create_wall_timer(std::chrono::seconds(5), std::bind(&Gps2Enu::info_timer_callback, this));
             datum_timer_ = this->create_wall_timer(std::chrono::seconds(1), std::bind(&Gps2Enu::datum_timer_callback, this));
