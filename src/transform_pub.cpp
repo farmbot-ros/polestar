@@ -15,6 +15,7 @@ class TransformPub : public rclcpp::Node {
         rclcpp::TimerBase::SharedPtr transform_timer_;
 
         std::string name;
+        std::string namespace_;
 
         std::unique_ptr<tf2_ros::TransformBroadcaster> base_tf;
         std::unique_ptr<tf2_ros::StaticTransformBroadcaster> odom_tf;
@@ -34,6 +35,8 @@ class TransformPub : public rclcpp::Node {
             } catch (...) {
                 name = "transform_pub";
             }
+
+            namespace_ = this->get_namespace();
 
             odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>("loc/odom", 10, std::bind(&TransformPub::base_transform, this, std::placeholders::_1));
             ecef_sub_ = this->create_subscription<nav_msgs::msg::Odometry>("loc/ref", 10, std::bind(&TransformPub::ecef_callback, this, std::placeholders::_1));
@@ -67,8 +70,8 @@ class TransformPub : public rclcpp::Node {
         void base_transform(const nav_msgs::msg::Odometry::ConstSharedPtr& odom) {
             geometry_msgs::msg::TransformStamped dyna_t;
             dyna_t.header.stamp = odom->header.stamp;
-            dyna_t.header.frame_id = "odom";
-            dyna_t.child_frame_id = "base_link";
+            dyna_t.header.frame_id = namespace_ + "/odom";
+            dyna_t.child_frame_id = namespace_ + "/base_link";
             dyna_t.transform.translation.x = odom->pose.pose.position.x;
             dyna_t.transform.translation.y = odom->pose.pose.position.y;
             // dyna_t.transform.translation.z = odom->pose.pose.position.z;
@@ -83,8 +86,8 @@ class TransformPub : public rclcpp::Node {
         void odom_transform() {
             geometry_msgs::msg::TransformStamped stat_t;
             stat_t.header.stamp = this->get_clock()->now();
-            stat_t.header.frame_id = "map";
-            stat_t.child_frame_id = "odom";
+            stat_t.header.frame_id = namespace_ + "/map";
+            stat_t.child_frame_id = namespace_ + "/odom";
             stat_t.transform.translation.x = 0.0;
             stat_t.transform.translation.y = 0.0;
             stat_t.transform.translation.z = 0.0;
@@ -98,8 +101,8 @@ class TransformPub : public rclcpp::Node {
         void map_transform() {
             geometry_msgs::msg::TransformStamped stat_t;
             stat_t.header.stamp = this->get_clock()->now();
-            stat_t.header.frame_id = "world";
-            stat_t.child_frame_id = "map";
+            stat_t.header.frame_id = "/world";
+            stat_t.child_frame_id = namespace_ + "/map";
             stat_t.transform.translation.x = ecef_msg.pose.pose.position.x;
             stat_t.transform.translation.y = ecef_msg.pose.pose.position.y;
             stat_t.transform.translation.z = ecef_msg.pose.pose.position.z;

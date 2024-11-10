@@ -4,6 +4,7 @@
 #include "nav_msgs/msg/odometry.hpp"
 #include "nav_msgs/msg/path.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
+#include "visualization_msgs/msg/marker.hpp"
 #include "farmbot_interfaces/msg/float32_stamped.hpp"
 #include "farmbot_interfaces/srv/datum.hpp"
 #include "farmbot_interfaces/srv/trigger.hpp"
@@ -38,6 +39,9 @@ class OdomNPath : public rclcpp::Node {
         rclcpp::Service<farmbot_interfaces::srv::Trigger>::SharedPtr dist_reset;
         rclcpp::Service<farmbot_interfaces::srv::Trigger>::SharedPtr path_reset;
 
+        visualization_msgs::msg::Marker marker;
+        rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr marker_pub;
+
         message_filters::Subscriber<nav_msgs::msg::Odometry> enu_sub_;
         message_filters::Subscriber<farmbot_interfaces::msg::Float32Stamped> rad_sub_;
         std::shared_ptr<message_filters::Synchronizer<message_filters::sync_policies::ApproximateTime<nav_msgs::msg::Odometry, farmbot_interfaces::msg::Float32Stamped>>> sync_;
@@ -64,6 +68,8 @@ class OdomNPath : public rclcpp::Node {
             path_pub_ = this->create_publisher<nav_msgs::msg::Path>("loc/path", 10);
             path_timer_ = this->create_wall_timer(std::chrono::milliseconds(100), std::bind(&OdomNPath::path_callback, this));
             path_reset = this->create_service<farmbot_interfaces::srv::Trigger>("loc/path_reset", std::bind(&OdomNPath::path_reset_callback, this, std::placeholders::_1, std::placeholders::_2));
+
+            marker_pub = this->create_publisher<visualization_msgs::msg::Marker>("loc/marker", 10);
 
             enu_sub_.subscribe(this, "loc/enu");
             rad_sub_.subscribe(this, "loc/rad");
@@ -138,6 +144,42 @@ class OdomNPath : public rclcpp::Node {
             auto req = _request; // TODO: fix, this is a hack to get rid of unused variable warning
             auto res = _response; // TODO: fix, this is a hack to get rid of unused variable warning
             return;
+        }
+
+        void publish_marker() {
+            // Set the frame ID and timestamp
+            marker.header.frame_id = enu_odom.header.frame_id;
+            marker.header.stamp = this->now();
+
+            // Set the namespace and id for this marker
+            marker.ns = this->get_namespace();  // Use the node's namespace
+            marker.id = 0;
+
+            // Set the marker type
+            marker.type = visualization_msgs::msg::Marker::ARROW;
+
+            // Set the marker action
+            marker.action = visualization_msgs::msg::Marker::ADD;
+
+            // Set the pose of the marker (odometry pose)
+            marker.pose = enu_odom.pose.pose;
+
+            // Set the scale of the marker
+            marker.scale.x = 0.5;  // Length of the arrow
+            marker.scale.y = 0.1;  // Width of the arrow shaft
+            marker.scale.z = 0.1;  // Height of the arrow shaft
+
+            // Set the color of the marker
+            marker.color.r = 0.0f;
+            marker.color.g = 1.0f;  // Green color
+            marker.color.b = 0.0f;
+            marker.color.a = 1.0f;  // Fully opaque
+
+            // Set the lifetime of the marker
+            marker.lifetime = rclcpp::Duration::from_seconds(0);  // 0 means marker persists until overwritten
+
+            // Publish the marker
+            marker_pub->publish(marker);
         }
 };
 
