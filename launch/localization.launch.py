@@ -21,8 +21,6 @@ def launch_setup(context, *args, **kwargs):
         executable='single_antenna',
         name='single_antenna',
         parameters=[
-            {"frame_prefix": namespace+"/"},
-            {"namespace": namespace},
             yaml.safe_load(open(param_file))['single_antenna']['ros__parameters'],
             yaml.safe_load(open(param_file))['global']['ros__parameters']
         ]
@@ -34,8 +32,6 @@ def launch_setup(context, *args, **kwargs):
         executable='dual_antenna',
         name='dual_antenna',
         parameters=[
-            {"frame_prefix": namespace+"/"},
-            {"namespace": namespace},
             yaml.safe_load(open(param_file))['dual_antenna']['ros__parameters'],
             yaml.safe_load(open(param_file))['global']['ros__parameters']
         ]
@@ -47,8 +43,6 @@ def launch_setup(context, *args, **kwargs):
         executable='fix_n_bearing',
         name='fix_n_bearing',
         parameters=[
-            {"frame_prefix": namespace+"/"},
-            {"namespace": namespace},
             yaml.safe_load(open(param_file))['fix_n_bearing']['ros__parameters'],
             yaml.safe_load(open(param_file))['global']['ros__parameters']
         ]
@@ -72,8 +66,6 @@ def launch_setup(context, *args, **kwargs):
         executable='using_enu',
         name='using_enu',
         parameters=[
-            {"frame_prefix": namespace+"/"},
-            {"namespace": namespace},
             yaml.safe_load(open(param_file))['using_enu']['ros__parameters'],
             yaml.safe_load(open(param_file))['global']['ros__parameters'],
         ]
@@ -86,8 +78,6 @@ def launch_setup(context, *args, **kwargs):
         executable='odom_n_path',
         name='odom_n_path',
         parameters=[
-            {"frame_prefix": namespace+"/"},
-            {"namespace": namespace},
             yaml.safe_load(open(param_file))['odom_n_path']['ros__parameters'],
             yaml.safe_load(open(param_file))['global']['ros__parameters']
         ]
@@ -100,8 +90,6 @@ def launch_setup(context, *args, **kwargs):
         executable='transform_pub',
         name='transform_pub',
         parameters=[
-            {"frame_prefix": namespace+"/"},
-            {"namespace": namespace},
             yaml.safe_load(open(param_file))['transform_pub']['ros__parameters'],
             yaml.safe_load(open(param_file))['global']['ros__parameters']
         ]
@@ -114,13 +102,19 @@ def launch_setup(context, *args, **kwargs):
         executable='cord_convert',
         name='cord_convert',
         parameters=[
-            {"frame_prefix": namespace+"/"},
-            {"namespace": namespace},
             yaml.safe_load(open(param_file))['cord_convert']['ros__parameters'],
             yaml.safe_load(open(param_file))['global']['ros__parameters']
         ]
     )
     nodes_array.append(cord_convert)
+
+    static_transform = Node(
+        package="tf2_ros",
+        executable="static_transform_publisher",
+        arguments=["0", "0", "0", "0", "0", "0", "1", namespace+"/base_link", namespace+"/gps"],
+        name="base_link_to_base_footprint"
+    )
+    nodes_array.append(static_transform)
 
     return nodes_array
 

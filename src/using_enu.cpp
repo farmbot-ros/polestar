@@ -25,6 +25,7 @@ class Gps2Enu : public rclcpp::Node {
         int gps_lock_time = 10;
 
         std::string name;
+        std::string frame_id;
         bool autodatum;
 
         rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr fix_sub_;
@@ -64,6 +65,9 @@ class Gps2Enu : public rclcpp::Node {
 
             info_timer_ = this->create_wall_timer(std::chrono::seconds(5), std::bind(&Gps2Enu::info_timer_callback, this));
             datum_timer_ = this->create_wall_timer(std::chrono::seconds(1), std::bind(&Gps2Enu::datum_timer_callback, this));
+
+            frame_id = this->get_namespace();
+            frame_id += "/odom";
         }
 
     private:
@@ -109,6 +113,7 @@ class Gps2Enu : public rclcpp::Node {
 
             nav_msgs::msg::Odometry enu_msg;
             enu_msg.header = fix->header;
+            enu_msg.child_frame_id = frame_id;
             double d_lat = datum.latitude, d_lon = datum.longitude, d_alt = datum.altitude;
             double enu_x, enu_y, enu_z;
             std::tie(enu_x, enu_y, enu_z) = utl::ecef_to_enu(std::make_tuple(ecef_x, ecef_y, ecef_z), std::make_tuple(d_lat, d_lon, d_alt));

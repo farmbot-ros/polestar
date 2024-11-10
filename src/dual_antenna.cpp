@@ -54,6 +54,7 @@ class AntennaFuse : public rclcpp::Node {
         std::string gps_aux_topic;
 
         std::string name;
+        std::string frame_id;
 
         message_filters::Subscriber<sensor_msgs::msg::NavSatFix> gps_main_;
         message_filters::Subscriber<sensor_msgs::msg::NavSatFix> gps_aux_;
@@ -110,13 +111,17 @@ class AntennaFuse : public rclcpp::Node {
             gps_pub_ = this->create_publisher<sensor_msgs::msg::NavSatFix>("loc/fix", 10);
             deg_ = this->create_publisher<farmbot_interfaces::msg::Float32Stamped>("loc/deg", 10);
             rad_ = this->create_publisher<farmbot_interfaces::msg::Float32Stamped>("loc/rad", 10);
+
+            frame_id = this->get_namespace();
+            frame_id += "/gps";
+
         }
 
     private:
 
         void callback(const sensor_msgs::msg::NavSatFix::ConstSharedPtr& gps_main_msg, const sensor_msgs::msg::NavSatFix::ConstSharedPtr& gps_aux_msg) {
             curr_pose = *gps_main_msg;
-            curr_pose.header.frame_id = "gps";
+            curr_pose.header.frame_id = frame_id;
 
             farmbot_interfaces::msg::Float32Stamped deg_msg;
             farmbot_interfaces::msg::Float32Stamped rad_msg;

@@ -115,14 +115,14 @@ class TransformPub : public rclcpp::Node {
             auto x = removeFirstFourDigits(ecef_msg.pose.pose.position.x);
             auto y = removeFirstFourDigits(ecef_msg.pose.pose.position.y);
             auto z = removeFirstFourDigits(ecef_msg.pose.pose.position.z);
-            RCLCPP_INFO(this->get_logger(), "ECEF: %f, %f, %f", x, y, z);
+            // RCLCPP_INFO(this->get_logger(), "ECEF: %f, %f, %f", x, y, z);
             geometry_msgs::msg::TransformStamped stat_t;
             stat_t.header.stamp = this->get_clock()->now();
             stat_t.header.frame_id = "/world";
             stat_t.child_frame_id = namespace_2 + "/map";
             stat_t.transform.translation.x = x;
             stat_t.transform.translation.y = y;
-            stat_t.transform.translation.z = z;
+            stat_t.transform.translation.z = 0.0;
             stat_t.transform.rotation.x = 0.0;
             stat_t.transform.rotation.y = 0.0;
             stat_t.transform.rotation.z = 0.0;

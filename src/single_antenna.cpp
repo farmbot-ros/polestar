@@ -1,4 +1,5 @@
 #include <cmath>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -104,6 +105,8 @@ class AntennaSplit : public rclcpp::Node {
         KalmanFilter back_filter = KalmanFilter(process_noise, measurement_noise);
 
         std::string name;
+        std::string frame_id;
+
         std::string gps_sub_topic;
         std::string gps_main_pub_topic;
         std::string gps_aux_pub_topic;
@@ -151,6 +154,10 @@ class AntennaSplit : public rclcpp::Node {
             gps_back_ = this->create_publisher<sensor_msgs::msg::NavSatFix>(gps_aux_pub_topic, 10);
 
             thresh_ser_ = this->create_service<farmbot_interfaces::srv::Threshold>("gps_fuse_dist", std::bind(&AntennaSplit::thresh_callback, this, std::placeholders::_1, std::placeholders::_2));
+
+            frame_id = this->get_namespace();
+            frame_id += "/gps";
+
         }
 
     private:
@@ -179,6 +186,7 @@ class AntennaSplit : public rclcpp::Node {
                     positions[0] = positions[1];
                     positions[1] = main_gps;
                 }
+                main_gps.header.frame_id = frame_id;
                 positions[0].header.stamp = main_gps.header.stamp;
                 gps_front_->publish(main_gps);
                 gps_back_->publish(positions[0]);

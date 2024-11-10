@@ -29,6 +29,7 @@ class OdomNPath : public rclcpp::Node {
         farmbot_interfaces::msg::Float32Stamped cumulative_dist;
 
         std::string name;
+        std::string frame_id;
 
         rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
         rclcpp::TimerBase::SharedPtr odom_timer_;
@@ -71,11 +72,15 @@ class OdomNPath : public rclcpp::Node {
             sync_ = std::make_shared<message_filters::Synchronizer<message_filters::sync_policies::ApproximateTime<nav_msgs::msg::Odometry, farmbot_interfaces::msg::Float32Stamped>>>(10);
             sync_->connectInput(enu_sub_, rad_sub_);
             sync_->registerCallback(std::bind(&OdomNPath::callback, this, std::placeholders::_1, std::placeholders::_2));
+
+            frame_id = this->get_namespace();
+            frame_id += "/map";
         }
 
     private:
         void callback(const nav_msgs::msg::Odometry::ConstSharedPtr& enu_msg, const farmbot_interfaces::msg::Float32Stamped::ConstSharedPtr& rad_msg) {
             enu_odom = *enu_msg;
+            enu_odom.header.frame_id = frame_id;
             std::array<double, 4> quaterions = theta_to_quaternion(rad_msg->data);
             // RCLCPP_INFO(this->get_logger(), "quat: %.15f, %.15f, %.15f, %.15f", quaterions[0], quaterions[1], quaterions[2], quaterions[3]);
             enu_odom.pose.pose.orientation.w = quaterions[0];
@@ -85,12 +90,11 @@ class OdomNPath : public rclcpp::Node {
 
             geometry_msgs::msg::PoseStamped pose;
             pose.header = enu_odom.header;
-            pose.header.frame_id = "map";
             enu_odom.pose.pose.position.z = 0; // TODO: remove if you want to use altitude
             pose.pose = enu_odom.pose.pose;
 
             //create path
-            path.header.frame_id = "map";
+            path.header.frame_id = frame_id;
             if (prev_point_path.pose.position.x == 0) {
                 prev_point_path = pose;
             }

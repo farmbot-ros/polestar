@@ -21,6 +21,7 @@ class GpsAndDEg : public rclcpp::Node {
         std::string angle_deg_topic;
 
         std::string name;
+        std::string frame_id;
 
         rclcpp::TimerBase::SharedPtr timer_;
         rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr gps_corr_;
@@ -62,6 +63,10 @@ class GpsAndDEg : public rclcpp::Node {
             gps_pub_ = this->create_publisher<sensor_msgs::msg::NavSatFix>("loc/fix", 10);
             deg_ = this->create_publisher<farmbot_interfaces::msg::Float32Stamped>("loc/deg", 10);
             rad_ = this->create_publisher<farmbot_interfaces::msg::Float32Stamped>("loc/rad", 10);
+
+            frame_id = this->get_namespace();
+            frame_id += "/gps";
+
         }
 
     private:
@@ -77,7 +82,7 @@ class GpsAndDEg : public rclcpp::Node {
         void timer_callback() {
             sensor_msgs::msg::NavSatFix curr_pose;
             curr_pose = curr_gps;
-            curr_pose.header.frame_id = "gps";
+            curr_pose.header.frame_id = frame_id;
             curr_pose.header.stamp = this->now();
             gps_pub_->publish(curr_pose);
             farmbot_interfaces::msg::Float32Stamped deg_msg;
