@@ -26,7 +26,7 @@ fix_n_bearing:
         name: "fix_n_bearings"
         #input_topics:
         gps_corr: "gps_center"
-        angle_deg: "angle_rad"
+        heading: "heading" # values in degree
 
 using_enu:
     ros__parameters:
