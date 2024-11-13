@@ -1,4 +1,3 @@
-#include <cmath>
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/nav_sat_fix.hpp"
 #include "nav_msgs/msg/odometry.hpp"
