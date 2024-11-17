@@ -114,6 +114,9 @@ class AntennaFuse : public rclcpp::Node {
             rad_ = this->create_publisher<farmbot_interfaces::msg::Float32Stamped>("loc/rad", 10);
 
             frame_id = this->get_namespace();
+            if (!frame_id.empty() && frame_id[0] == '/') {
+                frame_id = frame_id.substr(1); // Remove leading slash
+            }
             frame_id += "/gps";
 
         }

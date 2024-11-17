@@ -1,4 +1,5 @@
 #include <cmath>
+#include <rclcpp/logging.hpp>
 #include "rclcpp/rclcpp.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "tf2_ros/transform_broadcaster.h"
@@ -54,7 +55,11 @@ class TransformPub : public rclcpp::Node {
             altitude = this->get_parameter_or<bool>("altitude", false);
 
             namespace_ = this->get_namespace();
+            if (!namespace_.empty() && namespace_[0] == '/') {
+                namespace_ = namespace_.substr(1); // Remove leading slash
+            }
             namespace_2 = namespace_;
+
 
             odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>("loc/odom", 10, std::bind(&TransformPub::base_transform, this, std::placeholders::_1));
             ecef_sub_ = this->create_subscription<nav_msgs::msg::Odometry>("loc/ref", 10, std::bind(&TransformPub::ecef_callback, this, std::placeholders::_1));
@@ -63,6 +68,9 @@ class TransformPub : public rclcpp::Node {
             base_tf = std::make_unique<tf2_ros::TransformBroadcaster>(this);
             odom_tf = std::make_unique<tf2_ros::StaticTransformBroadcaster>(this);
             map_tf = std::make_unique<tf2_ros::StaticTransformBroadcaster>(this);
+            RCLCPP_INFO(this->get_logger(), "--------------------------------------------------");
+            RCLCPP_INFO(this->get_logger(), "NAMESPACE: %s", namespace_.c_str());
+            RCLCPP_INFO(this->get_logger(), "--------------------------------------------------");
         }
 
     private:

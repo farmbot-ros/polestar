@@ -76,6 +76,9 @@ class OdomNPath : public rclcpp::Node {
             sync_->registerCallback(std::bind(&OdomNPath::callback, this, std::placeholders::_1, std::placeholders::_2));
 
             frame_id = this->get_namespace();
+            if (!frame_id.empty() && frame_id[0] == '/') {
+                frame_id = frame_id.substr(1); // Remove leading slash
+            }
             frame_id += "/map";
         }
 

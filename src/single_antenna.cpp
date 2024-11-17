@@ -156,6 +156,9 @@ class AntennaSplit : public rclcpp::Node {
             thresh_ser_ = this->create_service<farmbot_interfaces::srv::Threshold>("gps_fuse_dist", std::bind(&AntennaSplit::thresh_callback, this, std::placeholders::_1, std::placeholders::_2));
 
             frame_id = this->get_namespace();
+            if (!frame_id.empty() && frame_id[0] == '/') {
+                frame_id = frame_id.substr(1); // Remove leading slash
+            }
             frame_id += "/gps";
             RCLCPP_INFO(this->get_logger(), "Node %s started and subscribed to %s", name.c_str(), gps_sub_topic.c_str());
         }
