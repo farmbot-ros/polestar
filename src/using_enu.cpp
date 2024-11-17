@@ -1,4 +1,5 @@
 #include <cmath>
+#include <vector>
 
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/nav_sat_fix.hpp"
@@ -26,7 +27,9 @@ class Gps2Enu : public rclcpp::Node {
 
         std::string name;
         std::string frame_id;
-        bool autodatum;
+        std::string autodatum;
+        std::vector<double> datum_param;
+        bool altitude;
 
         rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr fix_sub_;
 
@@ -51,7 +54,10 @@ class Gps2Enu : public rclcpp::Node {
             RCLCPP_INFO(this->get_logger(), "Starting GPS2ENU Node");
 
             name = this->get_parameter_or<std::string>("name", "using_enu");
-            autodatum = this->get_parameter_or<bool>("autodatum", false);
+            autodatum = this->get_parameter_or<std::string>("autodatum", "datum");
+            datum_param = this->get_parameter_or<std::vector<double>>("datum", {0.0, 0.0, 0.0});
+
+            altitude = this->get_parameter_or<bool>("altitude", false);
 
             fix_sub_ = this->create_subscription<sensor_msgs::msg::NavSatFix>("loc/fix", 10, std::bind(&Gps2Enu::callback, this, std::placeholders::_1));
 
@@ -73,8 +79,8 @@ class Gps2Enu : public rclcpp::Node {
     private:
 
         void info_timer_callback() {
-            if (!datum_set && autodatum) {
-                RCLCPP_INFO(this->get_logger(), "DATUM WILL BE SET AUTOMATICALLY IN %d SECONDS", gps_lock_time);
+            if (!datum_set && autodatum == "auto") {
+                RCLCPP_INFO(this->get_logger(), "DATUM WILL BE SET WHEN LOCALIZATION IS RECEIVED");
             } else if (!datum_set) {
                 RCLCPP_WARN(this->get_logger(), "NO DATUM SET, PLEASE SET DATUM FIRST!");
             }
@@ -90,8 +96,16 @@ class Gps2Enu : public rclcpp::Node {
         void callback(const sensor_msgs::msg::NavSatFix::ConstSharedPtr& fix) {
             curr_gps = *fix;
             if (!datum_set) {
-                if (gps_lock_time <= 0 && autodatum) {
+                if (gps_lock_time <= 0 && autodatum == "auto") {
                     set_datum(fix);
+                } else if (autodatum == "datum") {
+                    auto new_fix_msg = std::make_shared<sensor_msgs::msg::NavSatFix>();
+                    new_fix_msg->header = fix->header;
+                    new_fix_msg->header.frame_id = "datum";
+                    new_fix_msg->latitude = datum_param[0];
+                    new_fix_msg->longitude = datum_param[1];
+                    new_fix_msg->altitude = datum_param[2];
+                    set_datum(new_fix_msg);
                 } else {
                     return;
                 }
@@ -116,10 +130,14 @@ class Gps2Enu : public rclcpp::Node {
             enu_msg.child_frame_id = frame_id;
             double d_lat = datum.latitude, d_lon = datum.longitude, d_alt = datum.altitude;
             double enu_x, enu_y, enu_z;
-            std::tie(enu_x, enu_y, enu_z) = utl::ecef_to_enu(std::make_tuple(ecef_x, ecef_y, ecef_z), std::make_tuple(d_lat, d_lon, d_alt));
+            std::tie(enu_x, enu_y, enu_z) = utl::ecef_to_enu(std::make_tuple(ecef_x, ecef_y, ecef_z),
+                                                             std::make_tuple(d_lat, d_lon, d_alt));
             enu_msg.pose.pose.position.x = enu_x;
             enu_msg.pose.pose.position.y = enu_y;
             enu_msg.pose.pose.position.z = enu_z;
+            if (!altitude) {
+                enu_msg.pose.pose.position.z = 0.0;
+            }
 
             ecef_pub_->publish(ecef_msg);
             enu_pub_->publish(enu_msg);

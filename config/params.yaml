@@ -1,13 +1,16 @@
 global:
     ros__parameters:
-        localization_type: "fix_n_bearing" # "single_antenna" or "dual_antenna" or "fix_n_bearing"
-        autodatum: true
+        localization_type: "single_antenna" # "single_antenna" or "dual_antenna" or "fix_n_bearing"
+        autodatum: "datum" # "auto", "cli", "datum"
+        datum: [51.937587, 5.705458, 53.801823] # [latitude, longitude, altitude]
+        transform: "earth_center" # "earth_center" or "datum"
+        altitude: false
 
 single_antenna:
     ros__parameters:
         name: "single_antenna"
         #input_topic:
-        gps_topic: "gps"
+        gps_topic: "/fix"
         #output_topics:
         gps_main: "gps_main"
         gps_aux: "gps_aux"

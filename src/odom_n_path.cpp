@@ -11,8 +11,10 @@
 #include "message_filters/subscriber.h"
 #include "message_filters/time_synchronizer.h"
 #include "message_filters/sync_policies/approximate_time.h"
+#include <rclcpp/logging.hpp>
 
 std::array<double, 4> theta_to_quaternion(double theta) {
+    // rotate around z axis for 90 degrees
     return {std::cos(theta/2), 0, 0, -std::sin(theta/2)};
 }
 
@@ -29,6 +31,7 @@ class OdomNPath : public rclcpp::Node {
 
         std::string name;
         std::string frame_id;
+        float distance;
 
         rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
         rclcpp::TimerBase::SharedPtr odom_timer_;
@@ -78,46 +81,36 @@ class OdomNPath : public rclcpp::Node {
 
     private:
         void callback(const nav_msgs::msg::Odometry::ConstSharedPtr& enu_msg, const farmbot_interfaces::msg::Float32Stamped::ConstSharedPtr& rad_msg) {
-            enu_odom = *enu_msg;
-            enu_odom.header.frame_id = frame_id;
-            std::array<double, 4> quaterions = theta_to_quaternion(rad_msg->data);
-            // RCLCPP_INFO(this->get_logger(), "quat: %.15f, %.15f, %.15f, %.15f", quaterions[0], quaterions[1], quaterions[2], quaterions[3]);
-            enu_odom.pose.pose.orientation.w = quaterions[0];
-            enu_odom.pose.pose.orientation.x = quaterions[1];
-            enu_odom.pose.pose.orientation.y = quaterions[2];
-            enu_odom.pose.pose.orientation.z =  quaterions[3];
+        enu_odom = *enu_msg;
+        enu_odom.header.frame_id = frame_id;
+        std::array<double, 4> quaternions = theta_to_quaternion(rad_msg->data);
+        // RCLCPP_INFO(this->get_logger(), "quat: %.15f, %.15f, %.15f, %.15f", quaternions[0], quaternions[1], quaternions[2], quaternions[3]);
+        enu_odom.pose.pose.orientation.w = quaternions[0];
+        enu_odom.pose.pose.orientation.x = quaternions[1];
+        enu_odom.pose.pose.orientation.y = quaternions[2];
+        enu_odom.pose.pose.orientation.z =  quaternions[3];
 
-            geometry_msgs::msg::PoseStamped pose;
-            pose.header = enu_odom.header;
-            enu_odom.pose.pose.position.z = 0; // TODO: remove if you want to use altitude
-            pose.pose = enu_odom.pose.pose;
+        geometry_msgs::msg::PoseStamped pose;
+        pose.pose = enu_odom.pose.pose;
+        pose.pose.position.z = 0; // TODO: remove if you want to use altitude
 
-            //create path
-            path.header.frame_id = frame_id;
-            if (prev_point_path.pose.position.x == 0) {
-                prev_point_path = pose;
-            }
-            float distance_path = std::sqrt(std::pow(pose.pose.position.x - prev_point_path.pose.position.x, 2) + std::pow(pose.pose.position.y - prev_point_path.pose.position.y, 2));
-            if (distance_path > 0.1) {
-                prev_point_path = pose;
+        //create path
+        path.header.frame_id = frame_id;
+        cumulative_dist.header.frame_id = frame_id;
+        distance = point_distance(prev_point_dist, pose);
+        // RCLCPP_INFO(this->get_logger(), "dist: %.15f, curr_pose: %.15f, %.15f   prev_pose: %.15f, %.15f", distance, pose.pose.position.x, pose.pose.position.y, prev_point_dist.pose.position.x, prev_point_dist.pose.position.y);
+        if (distance > 0.1) {
+            prev_point_dist = pose;
+            cumulative_dist.data += distance;
+            if (distance < 1){
+                pose.header.frame_id = frame_id;
                 path.poses.push_back(pose);
             }
-            if (path.poses.size() > 100 && reset_path) {
-                path.poses.erase(path.poses.begin());
-            }
-
-            //create dist
-            if (prev_point_dist.pose.position.x == 0) {
-                prev_point_dist = pose;
-            }
-            float distance_dist = std::sqrt(std::pow(pose.pose.position.x - prev_point_dist.pose.position.x, 2) + std::pow(pose.pose.position.y - prev_point_dist.pose.position.y, 2));
-            if (distance_dist > 0.1) {
-                prev_point_dist = pose;
-                cumulative_dist.data += distance_dist;
-                cumulative_dist.header = pose.header;
-            }
-
         }
+        if (path.poses.size() > 100 && reset_path) {
+            path.poses.erase(path.poses.begin());
+        }
+    }
 
         void odom_callback() {
             odom_pub_->publish(enu_odom);
@@ -142,6 +135,12 @@ class OdomNPath : public rclcpp::Node {
             auto req = _request; // TODO: fix, this is a hack to get rid of unused variable warning
             auto res = _response; // TODO: fix, this is a hack to get rid of unused variable warning
             return;
+        }
+
+        float point_distance(geometry_msgs::msg::PoseStamped p1, geometry_msgs::msg::PoseStamped p2) {
+            return std::sqrt(std::pow(p1.pose.position.x - p2.pose.position.x, 2) +
+                             std::pow(p1.pose.position.y - p2.pose.position.y, 2) +
+                             std::pow(p1.pose.position.z - p2.pose.position.z, 2));
         }
 };
 

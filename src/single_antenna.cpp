@@ -157,7 +157,7 @@ class AntennaSplit : public rclcpp::Node {
 
             frame_id = this->get_namespace();
             frame_id += "/gps";
-
+            RCLCPP_INFO(this->get_logger(), "Node %s started and subscribed to %s", name.c_str(), gps_sub_topic.c_str());
         }
 
     private:

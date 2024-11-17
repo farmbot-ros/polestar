@@ -5,7 +5,7 @@
 #include "tf2_ros/static_transform_broadcaster.h"
 #include "geometry_msgs/msg/transform_stamped.hpp"
 
-float removeFirstFourDigits(float number, unsigned long digits=4) {
+float removeFirstFourDigits(float number, unsigned long digits=5) {
     std::string numberStr = std::to_string(number);
     if (numberStr.length() > digits+2) {
         numberStr = numberStr.substr(digits); // Remove the first n digits
@@ -26,8 +26,10 @@ class TransformPub : public rclcpp::Node {
         rclcpp::TimerBase::SharedPtr transform_timer_;
 
         std::string name;
+        std::string transform_from_;
         std::string namespace_;
         std::string namespace_2;
+        bool altitude;
 
         std::unique_ptr<tf2_ros::TransformBroadcaster> base_tf;
         std::unique_ptr<tf2_ros::StaticTransformBroadcaster> odom_tf;
@@ -44,9 +46,12 @@ class TransformPub : public rclcpp::Node {
 
             try {
                 name = this->get_parameter("name").as_string();
+
             } catch (...) {
                 name = "transform_pub";
             }
+
+            altitude = this->get_parameter_or<bool>("altitude", false);
 
             namespace_ = this->get_namespace();
             namespace_2 = namespace_;
@@ -87,8 +92,10 @@ class TransformPub : public rclcpp::Node {
             dyna_t.child_frame_id = namespace_ + "/base_link";
             dyna_t.transform.translation.x = odom->pose.pose.position.x;
             dyna_t.transform.translation.y = odom->pose.pose.position.y;
-            // dyna_t.transform.translation.z = odom->pose.pose.position.z;
-            dyna_t.transform.translation.z = 0.0; // TODO: Fix this if you want to use the z axis
+            dyna_t.transform.translation.z = odom->pose.pose.position.z;
+            if (!altitude) {
+                dyna_t.transform.translation.z = 0.0;
+            }
             dyna_t.transform.rotation.x = odom->pose.pose.orientation.x;
             dyna_t.transform.rotation.y = odom->pose.pose.orientation.y;
             dyna_t.transform.rotation.z = odom->pose.pose.orientation.z;
@@ -122,7 +129,10 @@ class TransformPub : public rclcpp::Node {
             stat_t.child_frame_id = namespace_2 + "/map";
             stat_t.transform.translation.x = x;
             stat_t.transform.translation.y = y;
-            stat_t.transform.translation.z = 0.0;
+            stat_t.transform.translation.z = z;
+            if (!altitude){
+                stat_t.transform.translation.z = 0.0;
+            }
             stat_t.transform.rotation.x = 0.0;
             stat_t.transform.rotation.y = 0.0;
             stat_t.transform.rotation.z = 0.0;
