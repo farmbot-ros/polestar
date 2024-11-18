@@ -33,6 +33,7 @@ class TransformPub : public rclcpp::Node {
         bool altitude;
 
         std::unique_ptr<tf2_ros::TransformBroadcaster> base_tf;
+        std::unique_ptr<tf2_ros::TransformBroadcaster> foot_tf;
         std::unique_ptr<tf2_ros::StaticTransformBroadcaster> odom_tf;
         std::unique_ptr<tf2_ros::StaticTransformBroadcaster> map_tf;
 
@@ -55,11 +56,12 @@ class TransformPub : public rclcpp::Node {
             }
 
 
-            odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>("loc/odom", 10, std::bind(&TransformPub::base_transform, this, std::placeholders::_1));
+            odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>("loc/odom", 10, std::bind(&TransformPub::footprint_transform, this, std::placeholders::_1));
             ecef_sub_ = this->create_subscription<nav_msgs::msg::Odometry>("loc/ref", 10, std::bind(&TransformPub::ecef_callback, this, std::placeholders::_1));
-            // sens_sub_ = this->create_subscription<nav_msgs::msg::Odometry>("loc/sens", 10, std::bind(&TransformPub::base_transform, this, std::placeholders::_1));
+            // sens_sub_ = this->create_subscription<nav_msgs::msg::Odometry>("loc/sens", 10, std::bind(&TransformPub::odom_transform, this, std::placeholders::_1));
 
             base_tf = std::make_unique<tf2_ros::TransformBroadcaster>(this);
+            foot_tf = std::make_unique<tf2_ros::TransformBroadcaster>(this);
             odom_tf = std::make_unique<tf2_ros::StaticTransformBroadcaster>(this);
             map_tf = std::make_unique<tf2_ros::StaticTransformBroadcaster>(this);
 
@@ -70,27 +72,44 @@ class TransformPub : public rclcpp::Node {
 
     private:
 
-        void base_transform(const nav_msgs::msg::Odometry::ConstSharedPtr& odom) {
+        void footprint_transform(const nav_msgs::msg::Odometry::ConstSharedPtr& odom) {
             odom_msg = *odom;
             geometry_msgs::msg::TransformStamped dyna_t;
             dyna_t.header.stamp = odom_msg.header.stamp;
             dyna_t.header.frame_id = namespace_ + "/odom";
-            dyna_t.child_frame_id = namespace_ + "/base_link";
+            dyna_t.child_frame_id = namespace_ + "/base_footprint";
             dyna_t.transform.translation.x = odom_msg.pose.pose.position.x;
             dyna_t.transform.translation.y = odom_msg.pose.pose.position.y;
-            dyna_t.transform.translation.z = odom_msg.pose.pose.position.z;
-            if (!altitude) {
-                dyna_t.transform.translation.z = 0.0;
-            }
+            dyna_t.transform.translation.z = 0.0;
             dyna_t.transform.rotation.x = odom_msg.pose.pose.orientation.x;
             dyna_t.transform.rotation.y = odom_msg.pose.pose.orientation.y;
             dyna_t.transform.rotation.z = odom_msg.pose.pose.orientation.z;
             dyna_t.transform.rotation.w = odom_msg.pose.pose.orientation.w;
             base_tf->sendTransform(dyna_t);
-            odom_transform();
+            baselink_transform(odom);
+            odom_transform(odom);
         }
 
-        void odom_transform() {
+        void baselink_transform(const nav_msgs::msg::Odometry::ConstSharedPtr& odom) {
+            geometry_msgs::msg::TransformStamped foot_t;
+            foot_t.header.stamp = this->get_clock()->now();
+            foot_t.header.frame_id = namespace_ + "/base_footprint";
+            foot_t.child_frame_id = namespace_ + "/base_link";
+            foot_t.transform.translation.x = 0.0;
+            foot_t.transform.translation.y = 0.0;
+            foot_t.transform.translation.z = odom->pose.pose.position.z;
+            if (!altitude){
+                foot_t.transform.translation.z = 0.0;
+            }
+            foot_t.transform.rotation.x = 0.0;
+            foot_t.transform.rotation.y = 0.0;
+            foot_t.transform.rotation.z = 0.0;
+            foot_t.transform.rotation.w = 1.0;
+            foot_tf->sendTransform(foot_t);
+        }
+
+        void odom_transform(const nav_msgs::msg::Odometry::ConstSharedPtr& odom) {
+            sens_msg = *odom;
             geometry_msgs::msg::TransformStamped stat_t;
             stat_t.header.stamp = this->get_clock()->now();
             stat_t.header.frame_id = namespace_ + "/map";
@@ -108,25 +127,15 @@ class TransformPub : public rclcpp::Node {
         // void map_transform() {
         void ecef_callback(const nav_msgs::msg::Odometry::ConstSharedPtr& ecef) {
             ecef_msg = *ecef;
-            auto x = ecef_msg.pose.pose.position.x;
-            auto y = ecef_msg.pose.pose.position.y;
-            auto z = ecef_msg.pose.pose.position.z;
-            // RCLCPP_INFO(this->get_logger(), "ECEF: %f, %f, %f", x, y, z);
-            if (world_ref_ == "datum") {
-                x = 0.0;
-                y = 0.0;
-                z = 0.0;
-            }
+            auto x = world_ref_ == "datum" ? 0.0 : ecef_msg.pose.pose.position.x;
+            auto y = world_ref_ == "datum" ? 0.0 : ecef_msg.pose.pose.position.y;
             geometry_msgs::msg::TransformStamped stat_t;
             stat_t.header.stamp = this->get_clock()->now();
             stat_t.header.frame_id = "world";
             stat_t.child_frame_id = namespace_ + "/map";
             stat_t.transform.translation.x = x;
             stat_t.transform.translation.y = y;
-            stat_t.transform.translation.z = z;
-            if (!altitude){
-                stat_t.transform.translation.z = 0.0;
-            }
+            stat_t.transform.translation.z = 0.0;
             stat_t.transform.rotation.x = 0.0;
             stat_t.transform.rotation.y = 0.0;
             stat_t.transform.rotation.z = 0.0;

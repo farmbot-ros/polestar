@@ -134,7 +134,7 @@ class Gps2Enu : public rclcpp::Node {
                                                              std::make_tuple(d_lat, d_lon, d_alt));
             enu_msg.pose.pose.position.x = enu_x;
             enu_msg.pose.pose.position.y = enu_y;
-            enu_msg.pose.pose.position.z = enu_z;
+            enu_msg.pose.pose.position.z = -enu_z;
             if (!altitude) {
                 enu_msg.pose.pose.position.z = 0.0;
             }
