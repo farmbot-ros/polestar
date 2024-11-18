@@ -3,11 +3,11 @@ global:
         # "single_antenna" or "dual_antenna" or "fix_n_bearing"
         localization_type: "fix_n_bearing"
         # "auto", "cli", "datum"
-        autodatum: "auto"
+        autodatum: "datum"
         # [latitude, longitude, altitude]
         datum: [51.937587, 5.705458, 53.801823]
         # "earth_center" or "datum"
-        transform: "earth_center"
+        world_ref: "datum"
         # true or false
         altitude: false
 
