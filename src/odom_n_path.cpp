@@ -95,7 +95,6 @@ class OdomNPath : public rclcpp::Node {
 
         geometry_msgs::msg::PoseStamped pose;
         pose.pose = enu_odom.pose.pose;
-        pose.pose.position.z = 0; // TODO: remove if you want to use altitude
 
         //create path
         path.header.frame_id = frame_id;

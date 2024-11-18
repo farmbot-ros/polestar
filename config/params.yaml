@@ -9,7 +9,7 @@ global:
         # "earth_center" or "datum"
         world_ref: "datum"
         # true or false
-        altitude: false
+        altitude: true
 
 single_antenna:
     ros__parameters:

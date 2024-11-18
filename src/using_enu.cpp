@@ -29,7 +29,6 @@ class Gps2Enu : public rclcpp::Node {
         std::string frame_id;
         std::string autodatum;
         std::vector<double> datum_param;
-        bool altitude;
 
         rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr fix_sub_;
 
@@ -53,27 +52,31 @@ class Gps2Enu : public rclcpp::Node {
         ){
             RCLCPP_INFO(this->get_logger(), "Starting GPS2ENU Node");
 
+            // Parameters
             name = this->get_parameter_or<std::string>("name", "using_enu");
             autodatum = this->get_parameter_or<std::string>("autodatum", "datum");
             datum_param = this->get_parameter_or<std::vector<double>>("datum", {0.0, 0.0, 0.0});
 
-            altitude = this->get_parameter_or<bool>("altitude", false);
-
+            // Subscribers
             fix_sub_ = this->create_subscription<sensor_msgs::msg::NavSatFix>("loc/fix", 10, std::bind(&Gps2Enu::callback, this, std::placeholders::_1));
 
+            // Publishers
             ecef_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("loc/ecef", 10);
             enu_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("loc/enu", 10);
             ecef_datum_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("loc/ref", 10);
             geo_dat_pub_ = this->create_publisher<sensor_msgs::msg::NavSatFix>("loc/ref/geo", 10);
 
+            // Services
             datum_gps_ = this->create_service<farmbot_interfaces::srv::Datum>("datum", std::bind(&Gps2Enu::datum_gps_callback, this, std::placeholders::_1, std::placeholders::_2));
             datum_set_ = this->create_service<farmbot_interfaces::srv::Trigger>("datum/set", std::bind(&Gps2Enu::datum_set_callback, this, std::placeholders::_1, std::placeholders::_2));
 
+            // Timers
             info_timer_ = this->create_wall_timer(std::chrono::seconds(5), std::bind(&Gps2Enu::info_timer_callback, this));
             datum_timer_ = this->create_wall_timer(std::chrono::seconds(1), std::bind(&Gps2Enu::datum_timer_callback, this));
 
+            // Frame ID
             frame_id = this->get_namespace();
-            frame_id += "/odom";
+            frame_id += "/map";
         }
 
     private:
@@ -134,11 +137,7 @@ class Gps2Enu : public rclcpp::Node {
                                                              std::make_tuple(d_lat, d_lon, d_alt));
             enu_msg.pose.pose.position.x = enu_x;
             enu_msg.pose.pose.position.y = enu_y;
-            enu_msg.pose.pose.position.z = -enu_z;
-            if (!altitude) {
-                enu_msg.pose.pose.position.z = 0.0;
-            }
-
+            enu_msg.pose.pose.position.z = curr_gps.altitude - datum.altitude;
             ecef_pub_->publish(ecef_msg);
             enu_pub_->publish(enu_msg);
         }

@@ -108,8 +108,8 @@ class TransformPub : public rclcpp::Node {
             foot_tf->sendTransform(foot_t);
         }
 
-        void odom_transform(const nav_msgs::msg::Odometry::ConstSharedPtr& odom) {
-            sens_msg = *odom;
+        void odom_transform(const nav_msgs::msg::Odometry::ConstSharedPtr& sens) {
+            sens_msg = *sens;
             geometry_msgs::msg::TransformStamped stat_t;
             stat_t.header.stamp = this->get_clock()->now();
             stat_t.header.frame_id = namespace_ + "/map";
