@@ -24,6 +24,7 @@ class OdomNPath : public rclcpp::Node {
         nav_msgs::msg::Odometry enu_odom;
         nav_msgs::msg::Odometry odom_map;
         nav_msgs::msg::Path path;
+        nav_msgs::msg::Path footprint;
         bool reset_path = false;
         geometry_msgs::msg::PoseStamped prev_point_path;
         geometry_msgs::msg::PoseStamped prev_point_dist;
@@ -38,6 +39,7 @@ class OdomNPath : public rclcpp::Node {
         rclcpp::Publisher<farmbot_interfaces::msg::Float32Stamped>::SharedPtr dist_pub_;
         rclcpp::TimerBase::SharedPtr dist_timer_;
         rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub_;
+        rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr footprint_pub_;
         rclcpp::TimerBase::SharedPtr path_timer_;
         rclcpp::Service<farmbot_interfaces::srv::Trigger>::SharedPtr dist_reset;
         rclcpp::Service<farmbot_interfaces::srv::Trigger>::SharedPtr path_reset;
@@ -66,6 +68,7 @@ class OdomNPath : public rclcpp::Node {
             dist_timer_ = this->create_wall_timer(std::chrono::milliseconds(100), std::bind(&OdomNPath::dist_callback, this));
             dist_reset = this->create_service<farmbot_interfaces::srv::Trigger>("loc/dist_reset", std::bind(&OdomNPath::dist_reset_callback, this, std::placeholders::_1, std::placeholders::_2));
             path_pub_ = this->create_publisher<nav_msgs::msg::Path>("loc/path", 10);
+            footprint_pub_ = this->create_publisher<nav_msgs::msg::Path>("loc/footprint", 10);
             path_timer_ = this->create_wall_timer(std::chrono::milliseconds(100), std::bind(&OdomNPath::path_callback, this));
             path_reset = this->create_service<farmbot_interfaces::srv::Trigger>("loc/path_reset", std::bind(&OdomNPath::path_reset_callback, this, std::placeholders::_1, std::placeholders::_2));
 
@@ -98,6 +101,7 @@ class OdomNPath : public rclcpp::Node {
 
         //create path
         path.header.frame_id = frame_id;
+        footprint.header.frame_id = frame_id;
         cumulative_dist.header.frame_id = frame_id;
         distance = point_distance(prev_point_dist, pose);
         // RCLCPP_INFO(this->get_logger(), "dist: %.15f, curr_pose: %.15f, %.15f   prev_pose: %.15f, %.15f", distance, pose.pose.position.x, pose.pose.position.y, prev_point_dist.pose.position.x, prev_point_dist.pose.position.y);
@@ -107,10 +111,13 @@ class OdomNPath : public rclcpp::Node {
             if (distance < 1){
                 pose.header.frame_id = frame_id;
                 path.poses.push_back(pose);
+                pose.pose.position.z = 0;
+                footprint.poses.push_back(pose);
             }
         }
         if (path.poses.size() > 100 && reset_path) {
             path.poses.erase(path.poses.begin());
+            footprint.poses.erase(footprint.poses.begin());
         }
     }
 
@@ -124,6 +131,7 @@ class OdomNPath : public rclcpp::Node {
 
         void path_callback() {
             path_pub_->publish(path);
+            footprint_pub_->publish(footprint);
         }
 
         void dist_reset_callback(const std::shared_ptr<farmbot_interfaces::srv::Trigger::Request> _request, std::shared_ptr<farmbot_interfaces::srv::Trigger::Response> _response) {
@@ -134,6 +142,7 @@ class OdomNPath : public rclcpp::Node {
         }
         void path_reset_callback(const std::shared_ptr<farmbot_interfaces::srv::Trigger::Request> _request, std::shared_ptr<farmbot_interfaces::srv::Trigger::Response> _response) {
             path.poses.clear();
+            footprint.poses.clear();
             auto req = _request; // TODO: fix, this is a hack to get rid of unused variable warning
             auto res = _response; // TODO: fix, this is a hack to get rid of unused variable warning
             return;
