@@ -23,7 +23,7 @@ class Gps2Enu : public rclcpp::Node {
         sensor_msgs::msg::NavSatFix datum;
         nav_msgs::msg::Odometry ecef_datum;
         bool datum_set = false;
-        int gps_lock_time = 10;
+        int gps_lock_time = 2;
 
         std::string name;
         std::string frame_id;
@@ -54,7 +54,7 @@ class Gps2Enu : public rclcpp::Node {
 
             // Parameters
             name = this->get_parameter_or<std::string>("name", "using_enu");
-            autodatum = this->get_parameter_or<std::string>("autodatum", "datum");
+            autodatum = this->get_parameter_or<std::string>("autodatum", "auto");
             datum_param = this->get_parameter_or<std::vector<double>>("datum", {0.0, 0.0, 0.0});
 
             // Subscribers
