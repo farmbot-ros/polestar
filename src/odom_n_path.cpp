@@ -15,7 +15,7 @@
 
 std::array<double, 4> theta_to_quaternion(double theta) {
     // rotate around z axis for 90 degrees
-    return {std::cos(theta/2), 0, 0, -std::sin(theta/2)};
+    return {std::cos(theta/2), 0, 0, std::sin(theta/2)};
 }
 
 

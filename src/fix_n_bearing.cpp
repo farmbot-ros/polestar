@@ -11,7 +11,7 @@
 
 double toRadians(double degrees) {
     auto rads = std::fmod(degrees * M_PI / 180.0, 360.0);
-    return -rads;
+    return rads;
 }
 
 class GpsAndDEg : public rclcpp::Node {
@@ -52,9 +52,9 @@ class GpsAndDEg : public rclcpp::Node {
                 rclcpp::Parameter angle_gpses_param = this->get_parameter("heading");
                 heading_topic = angle_gpses_param.as_string();
             } catch(const std::exception& e) {
-                RCLCPP_WARN(this->get_logger(), "Could not find one of those parameters: gps_corr, heading");
-                gps_corr_topic = "gps_corr";
-                heading_topic = "heading";
+                RCLCPP_WARN(this->get_logger(), "Could not find one of those parameters: gnss/fix, gnss/heading");
+                gps_corr_topic = "gnss/fix";
+                heading_topic = "gnss/heading";
             }
             RCLCPP_INFO(this->get_logger(), "Subscribing to %s and %s", gps_corr_topic.c_str(), heading_topic.c_str());
 
