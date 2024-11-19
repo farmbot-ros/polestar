@@ -17,16 +17,16 @@ single_antenna:
         #input_topic:
         gps_topic: "/fix"
         #output_topics:
-        gps_main: "gps_main"
-        gps_aux: "gps_aux"
+        gps_main: "gnss/fix"
+        gps_aux: "gnss/fix_aux"
         kallman_type: 1
 
 dual_antenna:
     ros__parameters:
         name: "dual_antenna"
         #input_topics:
-        gps_main: "gps_main"
-        gps_aux: "gps_aux"
+        gps_main: "gnss/fix"
+        gps_aux: "gnss/fix_aux"
         angle_gpses: 90.0
 
 fix_n_bearing:
