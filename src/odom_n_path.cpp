@@ -30,7 +30,6 @@ class OdomNPath : public rclcpp::Node {
         geometry_msgs::msg::PoseStamped prev_point_dist;
         farmbot_interfaces::msg::Float32Stamped cumulative_dist;
 
-        std::string name;
         std::string frame_id;
         float distance;
 
@@ -56,12 +55,6 @@ class OdomNPath : public rclcpp::Node {
             .automatically_declare_parameters_from_overrides(true)
         ){
             RCLCPP_INFO(this->get_logger(), "Starting Odom&Path");
-            try {
-                name = this->get_parameter("name").as_string();
-            } catch (...) {
-                name = "odom_n_path";
-            }
-
             odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("loc/odom", 10);
             odom_timer_ = this->create_wall_timer(std::chrono::milliseconds(100), std::bind(&OdomNPath::odom_callback, this));
             dist_pub_ = this->create_publisher<farmbot_interfaces::msg::Float32Stamped>("loc/dist", 10);

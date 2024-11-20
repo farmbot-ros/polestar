@@ -31,17 +31,13 @@ dual_antenna:
 
 fix_n_bearing:
     ros__parameters:
-        name: "fix_n_bearings"
         #input_topics:
-        bearing: "compass"
-        gps_corr: "gnss/fix"
-        heading: "gnss/heading" # values in degree
-        compass: "compass" # values in radian
+        fix: "gnss/fix"
+        orientation: "compass/radians"
+        units: "radians" # "degrees" or "radians"
 
 using_enu:
     ros__parameters:
-        name: "using_enu"
-        #input_topics:
         gps_lock_time: 5
 
 odom_n_path:

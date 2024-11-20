@@ -1,4 +1,5 @@
 #include <cmath>
+#include <rclcpp/logging.hpp>
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/nav_sat_fix.hpp"
 #include "farmbot_interfaces/msg/float32_stamped.hpp"
@@ -25,12 +26,10 @@ class GpsAndDEg : public rclcpp::Node {
         std_msgs::msg::Float32 heading;
         std_msgs::msg::Float32 compass;
 
-        std::string gps_corr_topic;
-        std::string heading_topic;
-        std::string compass_topic;
-        std::string bearing;
+        std::string fix_topic;
+        std::string orientation_topic;
+        std::string units;
 
-        std::string name;
         std::string frame_id;
 
         rclcpp::TimerBase::SharedPtr timer_;
@@ -49,33 +48,15 @@ class GpsAndDEg : public rclcpp::Node {
             .automatically_declare_parameters_from_overrides(true)
         ){
             RCLCPP_INFO(this->get_logger(), "Starting GPS & DEG Node");
-            try {
-                name = this->get_parameter("name").as_string();
-            } catch (...) {
-                name = "fix_n_bearing";
-            }
 
-            //try to get the parameters of gps_corr and heading topics
-            try{
-                rclcpp::Parameter gps_corr_param = this->get_parameter("gps_corr");
-                gps_corr_topic = gps_corr_param.as_string();
-                rclcpp::Parameter angle_gpses_param = this->get_parameter("heading");
-                heading_topic = angle_gpses_param.as_string();
-                rclcpp::Parameter compass_param = this->get_parameter("compass");
-                compass_topic = compass_param.as_string();
-                rclcpp::Parameter bearing_param = this->get_parameter("bearing");
-                bearing = bearing_param.as_string();
-            } catch(const std::exception& e) {
-                RCLCPP_WARN(this->get_logger(), "Could not find one of those parameters: gnss/fix, gnss/heading");
-                gps_corr_topic = "gnss/fix";
-                heading_topic = "gnss/heading";
-                compass_topic = "compass";
-            }
-            RCLCPP_INFO(this->get_logger(), "Subscribing to %s and %s", gps_corr_topic.c_str(), heading_topic.c_str());
+            fix_topic = this->get_parameter_or<std::string>("fix", "gnss/fix");
+            orientation_topic = this->get_parameter_or<std::string>("orientation", "gnss/heading");
+            units = this->get_parameter_or<std::string>("units", "degrees");
 
-            gps_corr_ = this->create_subscription<sensor_msgs::msg::NavSatFix>(gps_corr_topic, 10, std::bind(&GpsAndDEg::gps_corr_callback, this, std::placeholders::_1));
-            head_sub_ = this->create_subscription<std_msgs::msg::Float32>(heading_topic, 10, std::bind(&GpsAndDEg::angle_deg_callback, this, std::placeholders::_1));
-            comp_sub_ = this->create_subscription<std_msgs::msg::Float32>(compass_topic, 10, std::bind(&GpsAndDEg::angle_rad_callback, this, std::placeholders::_1));
+            RCLCPP_INFO(this->get_logger(), "Subscribing to %s and %s (%s)", fix_topic.c_str(), orientation_topic.c_str(), units.c_str());
+
+            gps_corr_ = this->create_subscription<sensor_msgs::msg::NavSatFix>(fix_topic, 10, std::bind(&GpsAndDEg::fix_callback, this, std::placeholders::_1));
+            head_sub_ = this->create_subscription<std_msgs::msg::Float32>(orientation_topic, 10, std::bind(&GpsAndDEg::orientation_callback, this, std::placeholders::_1));
             timer_ = this->create_wall_timer(std::chrono::milliseconds(10), std::bind(&GpsAndDEg::timer_callback, this));
             gps_pub_ = this->create_publisher<sensor_msgs::msg::NavSatFix>("loc/fix", 10);
             deg_ = this->create_publisher<farmbot_interfaces::msg::Float32Stamped>("loc/deg", 10);
@@ -91,17 +72,14 @@ class GpsAndDEg : public rclcpp::Node {
 
     private:
 
-        void gps_corr_callback(const sensor_msgs::msg::NavSatFix::ConstSharedPtr& gps_corr_msg) {
-            curr_gps = *gps_corr_msg;
+        void fix_callback(const sensor_msgs::msg::NavSatFix::ConstSharedPtr& fix_topic_msg) {
+            curr_gps = *fix_topic_msg;
         }
 
-        void angle_deg_callback(const std_msgs::msg::Float32::ConstSharedPtr& angle_deg_msg) {
-            heading = *angle_deg_msg;
+        void orientation_callback(const std_msgs::msg::Float32::ConstSharedPtr& orientation_topic_msg) {
+            heading = *orientation_topic_msg;
         }
 
-        void angle_rad_callback(const std_msgs::msg::Float32::ConstSharedPtr& angle_rad_msg) {
-            compass = *angle_rad_msg;
-        }
 
         void timer_callback() {
             sensor_msgs::msg::NavSatFix curr_pose;
@@ -115,12 +93,15 @@ class GpsAndDEg : public rclcpp::Node {
             farmbot_interfaces::msg::Float32Stamped rad_msg;
             rad_msg.header = curr_pose.header;
 
-            if (bearing == "compass") {
-                rad_msg.data = compass.data;
-                deg_msg.data = toDegrees(compass.data);
-            } else if (bearing == "heading") {
-                rad_msg.data = toRadians(heading.data);
+            if (units == "degrees") {
                 deg_msg.data = heading.data;
+                rad_msg.data = toRadians(heading.data);
+            } else if (units == "radians") {
+                deg_msg.data = toDegrees(heading.data);
+                rad_msg.data = heading.data;
+            } else {
+                RCLCPP_WARN(this->get_logger(), "Invalid units parameter: %s", units.c_str());
+                return;
             }
             deg_->publish(deg_msg);
             rad_->publish(rad_msg);
