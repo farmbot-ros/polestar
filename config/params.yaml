@@ -33,8 +33,10 @@ fix_n_bearing:
     ros__parameters:
         name: "fix_n_bearings"
         #input_topics:
+        bearing: "compass"
         gps_corr: "gnss/fix"
         heading: "gnss/heading" # values in degree
+        compass: "compass" # values in radian
 
 using_enu:
     ros__parameters:
