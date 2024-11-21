@@ -90,11 +90,12 @@ class TransformPub : public rclcpp::Node {
         }
 
         void check_system(diagnostic_updater::DiagnosticStatusWrapper &stat) {
-            stat.summary(diagnostic_msgs::msg::DiagnosticStatus::OK, "System is running");
-            stat.add("World to Map", world_to_map);
-            stat.add("Map to Odom", map_to_odom);
-            stat.add("Odom to Base Footprint", odom_to_basef);
-            stat.add("Base Footprint to Base Link", basef_to_basel);
+            if (world_to_map && map_to_odom && odom_to_basef && basef_to_basel) {
+                stat.summary(diagnostic_msgs::msg::DiagnosticStatus::OK, "Transforms are A OK!");
+            } else {
+                stat.summary(diagnostic_msgs::msg::DiagnosticStatus::ERROR, "Transforms are not OK!");
+            }
+            stat.summary(diagnostic_msgs::msg::DiagnosticStatus::OK, "Transforms are A OK!");
         }
 
         void footprint_transform(const nav_msgs::msg::Odometry::ConstSharedPtr& odom) {
