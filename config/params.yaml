@@ -5,7 +5,8 @@ global:
         # "auto", "cli", "datum"
         autodatum: "auto"
         # [latitude, longitude, altitude]
-        datum: [51.937587, 5.705458, 53.801823]
+        # datum: [51.937587, 5.705458, 53.801823]  # Randwijk
+        datum: [51.987305, 5.663625, 53.801823] # Wageningen
         # "earth_center" or "datum"
         world_ref: "datum"
         # true or false
