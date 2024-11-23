@@ -104,25 +104,3 @@ namespace loc_utils {
         return std::make_tuple(latitude, longitude);
     }
 }
-
-namespace geo_utils{
-    // Function to convert latitude/longitude (WGS-84) to UTM coordinates using GeographicLib
-    std::tuple<double, double, int, bool> wgs_to_utm(double latitude, double longitude, double easting, double northing, int zone, bool is_northern) {
-        // Use GeographicLib to perform the conversion
-        GeographicLib::UTMUPS::Forward(latitude, longitude, zone, is_northern, easting, northing);
-
-        // Return UTM coordinates: easting, northing, UTM zone, and hemisphere (true for northern)
-        return std::make_tuple(easting, northing, zone, is_northern);
-    }
-
-    // Function to convert UTM coordinates to latitude/longitude (WGS-84) using GeographicLib
-    std::tuple<double, double> utm_to_wgs(double easting, double northing, int zone, bool is_northern) {
-        double latitude, longitude;
-
-        // Use GeographicLib to perform the reverse conversion
-        GeographicLib::UTMUPS::Reverse(zone, is_northern, easting, northing, latitude, longitude);
-
-        // Return the WGS-84 coordinates (latitude, longitude)
-        return std::make_tuple(latitude, longitude);
-    }
-}

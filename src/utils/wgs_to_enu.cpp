@@ -50,7 +50,7 @@ namespace loc_utils {
     // Function to convert GPS (lat, lon, alt) to ENU (East, North, Up) with respect to a datum
     std::tuple<double, double, double> gps_to_enu(double latitude, double longitude, double altitude, double latRef, double longRef, double altRef) {
         // Convert GPS coordinates to ECEF
-        std::tuple<double, double, double> ecef = gps_to_ecef(latitude, longitude, altitude);        
+        std::tuple<double, double, double> ecef = gps_to_ecef(latitude, longitude, altitude);
         // Return the ENU coordinates
         return ecef_to_enu(ecef, std::make_tuple(latRef, longRef, altRef));
     }
@@ -103,77 +103,6 @@ namespace loc_utils {
     std::tuple<double, double, double> enu_to_gps(double xEast, double yNorth, double zUp, double latRef, double longRef, double altRef) {
         // Convert ENU to ECEF
         std::tuple<double, double, double> ecef = enu_to_ecef(std::make_tuple(xEast, yNorth, zUp), std::make_tuple(latRef, longRef, altRef));
-        // Convert ECEF to GPS
-        return ecef_to_gps(std::get<0>(ecef), std::get<1>(ecef), std::get<2>(ecef));
-    }
-}
-
-namespace geo_utils {
-
-    // Function to convert GPS (lat, lon, alt) to ECEF coordinates
-    std::tuple<double, double, double> gps_to_ecef(double latitude, double longitude, double altitude) {
-        double x, y, z;
-        GeographicLib::Geocentric earth(GeographicLib::Constants::WGS84_a(), GeographicLib::Constants::WGS84_f());
-        earth.Forward(latitude, longitude, altitude, x, y, z);
-        return std::make_tuple(x, y, z);
-    }
-
-    // Function to convert ECEF coordinates to ENU (East, North, Up) with respect to a datum
-    std::tuple<double, double, double> ecef_to_enu(std::tuple<double, double, double> ecef, std::tuple<double, double, double> datum) {
-        double x, y, z;
-        std::tie(x, y, z) = ecef;
-        double latRef, longRef, altRef;
-        std::tie(latRef, longRef, altRef) = datum;
-        
-        // Create a LocalCartesian system centered at the datum
-        GeographicLib::LocalCartesian localCartesian(latRef, longRef, altRef, GeographicLib::Geocentric::WGS84());
-        
-        double xEast, yNorth, zUp;
-        localCartesian.Forward(x, y, z, xEast, yNorth, zUp);
-        
-        return std::make_tuple(xEast, yNorth, zUp);
-    }
-
-    // Function to convert GPS (lat, lon, alt) to ENU (East, North, Up) with respect to a datum
-    std::tuple<double, double, double> gps_to_enu(double latitude, double longitude, double altitude, double latRef, double longRef, double altRef) {
-        // Create a LocalCartesian system centered at the datum
-        GeographicLib::LocalCartesian localCartesian(latRef, longRef, altRef, GeographicLib::Geocentric::WGS84());
-
-        double xEast, yNorth, zUp;
-        localCartesian.Forward(latitude, longitude, altitude, xEast, yNorth, zUp);
-        
-        return std::make_tuple(xEast, yNorth, zUp);
-    }
-
-    // Function to convert ENU coordinates to ECEF
-    std::tuple<double, double, double> enu_to_ecef(std::tuple<double, double, double> enu, std::tuple<double, double, double> datum) {
-        double xEast, yNorth, zUp;
-        std::tie(xEast, yNorth, zUp) = enu;
-        double latRef, longRef, altRef;
-        std::tie(latRef, longRef, altRef) = datum;
-
-        // Create a LocalCartesian system centered at the datum
-        GeographicLib::LocalCartesian localCartesian(latRef, longRef, altRef, GeographicLib::Geocentric::WGS84());
-
-        double x, y, z;
-        localCartesian.Reverse(xEast, yNorth, zUp, x, y, z);
-        
-        return std::make_tuple(x, y, z);
-    }
-
-    // Function to convert ECEF coordinates to GPS (lat, lon, alt)
-    std::tuple<double, double, double> ecef_to_gps(double x, double y, double z) {
-        double latitude, longitude, altitude;
-        GeographicLib::Geocentric earth(GeographicLib::Constants::WGS84_a(), GeographicLib::Constants::WGS84_f());
-        earth.Reverse(x, y, z, latitude, longitude, altitude);
-        return std::make_tuple(latitude, longitude, altitude);
-    }
-
-    // Function to convert ENU coordinates to GPS (lat, lon, alt)
-    std::tuple<double, double, double> enu_to_gps(double xEast, double yNorth, double zUp, double latRef, double longRef, double altRef) {
-        // Convert ENU to ECEF
-        std::tuple<double, double, double> ecef = enu_to_ecef(std::make_tuple(xEast, yNorth, zUp), std::make_tuple(latRef, longRef, altRef));
-        
         // Convert ECEF to GPS
         return ecef_to_gps(std::get<0>(ecef), std::get<1>(ecef), std::get<2>(ecef));
     }

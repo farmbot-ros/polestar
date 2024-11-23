@@ -94,15 +94,11 @@ find_package(PCL REQUIRED)
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
-# FindGeographicLib.cmake is not installed in the default location, so we need to specify the path
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "/usr/share/cmake/geographiclib/")
-find_package(GeographicLib REQUIRED)
 
 set(dependencies_sys
   fmt::fmt
   ${PCL_LIBRARIES}
   ${Eigen_LIBRARIES}
-  ${GeographicLib_LIBRARIES}
 )
 
 foreach(util ${utils})

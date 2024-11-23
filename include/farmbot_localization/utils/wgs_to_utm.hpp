@@ -28,8 +28,3 @@ namespace loc_utils {
     std::tuple<double, double, int, bool> wgs_to_utm(double latitude, double longitude);
     std::tuple<double, double> utm_to_wgs(double easting, double northing, int zone, bool is_northern_hemisphere);
 }
-
-namespace geo_utils {
-    std::tuple<double, double, double> wgs_to_utm(double latitude, double longitude);
-    std::tuple<double, double> utm_to_wgs(double easting, double northing, int zone, bool is_northern_hemisphere);
-}
