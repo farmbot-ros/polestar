@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(farmbot_localization)
+project(farmbot_polestar)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -45,10 +45,6 @@ set(executables
   cord_convert
 )
 
-set (utils
-  wgs_to_enu
-  wgs_to_utm
-)
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -101,21 +97,11 @@ set(dependencies_sys
   ${Eigen_LIBRARIES}
 )
 
-foreach(util ${utils})
-  add_library(${util} src/utils/${util}.cpp)
-  ament_target_dependencies(${util} ${dependencies_ros})
-  # target_compile_options(${util} PRIVATE -Wno-deprecated-declarations -Wunused-parameter)
-  target_link_libraries(${util} ${dependencies_sys})
-endforeach()
-
 foreach(executable ${executables})
   add_executable(${executable} src/${executable}.cpp)
   ament_target_dependencies(${executable} ${dependencies_ros})
   target_link_libraries(${executable} ${dependencies_sys})
   # target_compile_options(${executable} PRIVATE -Wno-deprecated-declarations -Wunused-parameter)
-  foreach(util ${utils})
-    target_link_libraries(${executable} ${util})
-  endforeach()
 endforeach()
 
 

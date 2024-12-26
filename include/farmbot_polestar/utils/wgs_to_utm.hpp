@@ -1,9 +1,33 @@
-#include "farmbot_localization/utils/wgs_to_utm.hpp"
+#pragma once
+
+#include <cmath>
+#include <tuple>
+#include <stdexcept>
+
+// Constants used in the UTM conversion process
+constexpr double a = 6378137.0; // WGS-84 major axis
+constexpr double f = 1.0 / 298.257223563; // WGS-84 flattening
+constexpr double k0 = 0.9996; // UTM scale factor
+constexpr double e2 = f * (2 - f); // Square of eccentricity
+constexpr double e4 = e2 * e2;
+constexpr double e6 = e4 * e2;
+constexpr double ep2 = e2 / (1 - e2); // Second eccentricity squared
 
 
 namespace loc_utils {
+
+    // Function to determine the UTM zone for a given longitude
+    int inline get_utm_zone(double longitude) {
+        return static_cast<int>(std::floor((longitude + 180.0) / 6.0) + 1);
+    }
+
+    // Function to determine if a given latitude is in the northern hemisphere
+    bool inline is_northern_hemisphere(double latitude) {
+        return latitude >= 0.0;
+    }
+
     // Function to convert latitude/longitude (WGS-84) to UTM coordinates
-    std::tuple<double, double, int, bool> wgs_to_utm(double latitude, double longitude) {
+    std::tuple<double, double, int, bool> inline wgs_to_utm(double latitude, double longitude) {
         // Check latitude bounds
         if (latitude < -80.0 || latitude > 84.0) {
             throw std::out_of_range("Latitude out of UTM bounds (-80 to 84 degrees).");
@@ -54,8 +78,9 @@ namespace loc_utils {
         return std::make_tuple(easting, northing, zone, is_northern_hemisphere(latitude));
     }
 
+
     // Function to convert UTM to WGS-84 (latitude, longitude)
-    std::tuple<double, double> utm_to_wgs(double easting, double northing, int zone, bool is_northern_hemisphere) {
+    std::tuple<double, double> inline utm_to_wgs(double easting, double northing, int zone, bool is_northern_hemisphere) {
         // Adjust for the southern hemisphere
         if (!is_northern_hemisphere) {
             northing -= 10000000.0;

@@ -12,12 +12,12 @@ from launch.actions import OpaqueFunction
 def launch_setup(context, *args, **kwargs):
     namespace = LaunchConfiguration('namespace').perform(context)
     audodatum = LaunchConfiguration('autodatum').perform(context)
-    param_file = os.path.join(get_package_share_directory('farmbot_localization'), 'config', 'params.yaml')
+    param_file = os.path.join(get_package_share_directory('farmbot_polestar'), 'config', 'params.yaml')
 
     nodes_array = []
 
     single_antenna = Node(
-        package='farmbot_localization',
+        package='farmbot_polestar',
         namespace=namespace,
         executable='single_antenna',
         name='single_antenna',
@@ -29,7 +29,7 @@ def launch_setup(context, *args, **kwargs):
     )
 
     dual_antenna = Node(
-        package='farmbot_localization',
+        package='farmbot_polestar',
         namespace=namespace,
         executable='dual_antenna',
         name='dual_antenna',
@@ -41,7 +41,7 @@ def launch_setup(context, *args, **kwargs):
     )
 
     fix_n_bearing = Node(
-        package='farmbot_localization',
+        package='farmbot_polestar',
         namespace=namespace,
         executable='fix_n_bearing',
         name='fix_n_bearing',
@@ -65,7 +65,7 @@ def launch_setup(context, *args, **kwargs):
         nodes_array.append(dual_antenna)
 
     using_enu = Node(
-        package='farmbot_localization',
+        package='farmbot_polestar',
         namespace=namespace,
         executable='using_enu',
         name='using_enu',
@@ -78,7 +78,7 @@ def launch_setup(context, *args, **kwargs):
     nodes_array.append(using_enu)
 
     odom_n_path = Node(
-        package='farmbot_localization',
+        package='farmbot_polestar',
         namespace=namespace,
         executable='odom_n_path',
         name='odom_n_path',
@@ -91,7 +91,7 @@ def launch_setup(context, *args, **kwargs):
     nodes_array.append(odom_n_path)
 
     transform_pub = Node(
-        package='farmbot_localization',
+        package='farmbot_polestar',
         namespace=namespace,
         executable='transform_pub',
         name='transform_pub',
@@ -104,7 +104,7 @@ def launch_setup(context, *args, **kwargs):
     nodes_array.append(transform_pub)
 
     cord_convert = Node(
-        package='farmbot_localization',
+        package='farmbot_polestar',
         namespace=namespace,
         executable='cord_convert',
         name='cord_convert',
