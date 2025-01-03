@@ -2,8 +2,6 @@
 
 #include <tuple>
 #include <cmath>
-#include <GeographicLib/LocalCartesian.hpp>
-#include <GeographicLib/Geocentric.hpp>
 
 // Constants
 const double R = 6378137.0;                // Earth's radius in meters (equatorial radius)
