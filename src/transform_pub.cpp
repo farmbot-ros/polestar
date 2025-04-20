@@ -12,75 +12,60 @@ using namespace std::chrono_literals;
 float removeFirstFourDigits(float number, unsigned long digits = 5) {
     std::string numberStr = std::to_string(number);
     if (numberStr.length() > digits + 2) {
-        numberStr = numberStr.substr(digits); // Remove the first n digits
-        // return std::stoi(numberStr); // Convert back to an integer
+        numberStr = numberStr.substr(digits);
         return std::stof(numberStr);
     } else {
-        // Handle case where number has fewer than n digits
         return number;
     }
 }
 
-class TransformPub : public rclcpp::Node {
+class TransformPub {
   private:
+    rclcpp::Node::SharedPtr node_;
+    std::string namespace_;
+    std::string world_ref_;
+    bool altitude;
+
     bool world_to_map;
     bool map_to_odom;
     bool odom_to_basef;
     bool basef_to_basel;
 
-    nav_msgs::msg::Odometry ecef_msg;
-    nav_msgs::msg::Odometry odom_msg;
-    nav_msgs::msg::Odometry sens_msg;
-
-    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr ecef_sub_;
-    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
-    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr sens_sub_;
-
-    std::string namespace_;
-    std::string world_ref_;
-    bool altitude;
-
-    std::unique_ptr<tf2_ros::TransformBroadcaster> base_tf;
-    std::unique_ptr<tf2_ros::TransformBroadcaster> foot_tf;
-    std::unique_ptr<tf2_ros::StaticTransformBroadcaster> odom_tf;
-    std::unique_ptr<tf2_ros::StaticTransformBroadcaster> map_tf;
+    nav_msgs::msg::Odometry ecef_msg, odom_msg, sens_msg;
+    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr ecef_sub_, odom_sub_, sens_sub_;
+    std::unique_ptr<tf2_ros::TransformBroadcaster> base_tf, foot_tf;
+    std::unique_ptr<tf2_ros::StaticTransformBroadcaster> odom_tf, map_tf;
 
     // Diagnostic Updater
     diagnostic_updater::Updater updater_;
     rclcpp::TimerBase::SharedPtr diagnostic_timer_;
 
   public:
-    TransformPub()
-        : Node("transform_pub",
-               rclcpp::NodeOptions().allow_undeclared_parameters(true).automatically_declare_parameters_from_overrides(
-                   true)),
-          updater_(this) {
-        RCLCPP_INFO(this->get_logger(), "Starting TransformPub node");
+    TransformPub(rclcpp::Node::SharedPtr node) : node_(node), updater_(node) {
+        RCLCPP_INFO(node_->get_logger(), "Starting TransformPub node");
 
-        world_ref_ = this->get_parameter_or<std::string>("world_ref", "datum");
-        altitude = this->get_parameter_or<bool>("altitude", false);
+        world_ref_ = node_->get_parameter_or<std::string>("world_ref", "datum");
+        altitude = node_->get_parameter_or<bool>("altitude", false);
 
-        namespace_ = this->get_namespace();
+        namespace_ = node_->get_namespace();
         if (!namespace_.empty() && namespace_[0] == '/') {
             namespace_ = namespace_.substr(1);
         }
 
-        odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
+        odom_sub_ = node_->create_subscription<nav_msgs::msg::Odometry>(
             "loc/odom", 10, std::bind(&TransformPub::footprint_transform, this, std::placeholders::_1));
-        ecef_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
+        ecef_sub_ = node_->create_subscription<nav_msgs::msg::Odometry>(
             "loc/ref", 10, std::bind(&TransformPub::ecef_callback, this, std::placeholders::_1));
-        // sens_sub_ = this->create_subscription<nav_msgs::msg::Odometry>("loc/sens", 10,
-        // std::bind(&TransformPub::odom_transform, this, std::placeholders::_1));
 
-        base_tf = std::make_unique<tf2_ros::TransformBroadcaster>(this);
-        foot_tf = std::make_unique<tf2_ros::TransformBroadcaster>(this);
-        odom_tf = std::make_unique<tf2_ros::StaticTransformBroadcaster>(this);
-        map_tf = std::make_unique<tf2_ros::StaticTransformBroadcaster>(this);
+        base_tf = std::make_unique<tf2_ros::TransformBroadcaster>(node_);
+        foot_tf = std::make_unique<tf2_ros::TransformBroadcaster>(node_);
+        odom_tf = std::make_unique<tf2_ros::StaticTransformBroadcaster>(node_);
+        map_tf = std::make_unique<tf2_ros::StaticTransformBroadcaster>(node_);
 
         // Diagnostic Updater
-        updater_.setHardwareID(static_cast<std::string>(this->get_namespace()) + "loc");
+        updater_.setHardwareID(static_cast<std::string>(node_->get_namespace()) + "loc");
         updater_.add("Transformation Status", this, &TransformPub::check_system);
-        diagnostic_timer_ = this->create_wall_timer(1s, std::bind(&TransformPub::diagnostic_callback, this));
+        diagnostic_timer_ = node_->create_wall_timer(1s, std::bind(&TransformPub::diagnostic_callback, this));
     }
 
   private:
@@ -116,7 +101,7 @@ class TransformPub : public rclcpp::Node {
 
     void baselink_transform(const nav_msgs::msg::Odometry::ConstSharedPtr &odom) {
         geometry_msgs::msg::TransformStamped foot_t;
-        foot_t.header.stamp = this->get_clock()->now();
+        foot_t.header.stamp = node_->get_clock()->now();
         foot_t.header.frame_id = namespace_ + "/base_footprint";
         foot_t.child_frame_id = namespace_ + "/base_link";
         foot_t.transform.translation.x = 0.0;
@@ -136,7 +121,7 @@ class TransformPub : public rclcpp::Node {
     void odom_transform(const nav_msgs::msg::Odometry::ConstSharedPtr &sens) {
         sens_msg = *sens;
         geometry_msgs::msg::TransformStamped stat_t;
-        stat_t.header.stamp = this->get_clock()->now();
+        stat_t.header.stamp = node_->get_clock()->now();
         stat_t.header.frame_id = namespace_ + "/map";
         stat_t.child_frame_id = namespace_ + "/odom";
         stat_t.transform.translation.x = 0.0;
@@ -156,7 +141,7 @@ class TransformPub : public rclcpp::Node {
         auto x = world_ref_ == "datum" ? 0.0 : ecef_msg.pose.pose.position.x;
         auto y = world_ref_ == "datum" ? 0.0 : ecef_msg.pose.pose.position.y;
         geometry_msgs::msg::TransformStamped stat_t;
-        stat_t.header.stamp = this->get_clock()->now();
+        stat_t.header.stamp = node_->get_clock()->now();
         stat_t.header.frame_id = "world";
         stat_t.child_frame_id = namespace_ + "/map";
         stat_t.transform.translation.x = x;
@@ -174,8 +159,20 @@ class TransformPub : public rclcpp::Node {
 
 int main(int argc, char *argv[]) {
     rclcpp::init(argc, argv);
-    auto navfix = std::make_shared<TransformPub>();
-    rclcpp::spin(navfix);
+    rclcpp::executors::MultiThreadedExecutor executor(rclcpp::ExecutorOptions(), 4);
+    rclcpp::NodeOptions options;
+    options.allow_undeclared_parameters(true);
+    options.automatically_declare_parameters_from_overrides(true);
+
+    rclcpp::Node::SharedPtr node1 = rclcpp::Node::make_shared("transform_pub", options);
+    std::shared_ptr<TransformPub> taskerrr = std::make_shared<TransformPub>(node1);
+
+    try {
+        executor.add_node(node1);
+        executor.spin();
+    } catch (const std::exception &e) {
+        return 1;
+    }
     rclcpp::shutdown();
     return 0;
 }

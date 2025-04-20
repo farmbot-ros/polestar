@@ -1,54 +1,8 @@
 global:
     ros__parameters:
-        # "single_antenna" or "dual_antenna" or "fix_n_bearing"
-        localization_type: "fix_n_bearing"
-        # "auto", "cli", "datum"
         autodatum: "auto"
-        # [latitude, longitude, altitude]
-        # datum: [51.937587, 5.705458, 53.801823]  # Randwijk
-        datum: [51.987305, 5.663625, 53.801823] # Wageningen
-        # "earth_center" or "datum"
-        world_ref: "datum"
-        # true or false
         altitude: true
-
-single_antenna:
-    ros__parameters:
-        name: "single_antenna"
-        #input_topic:
-        gps_topic: "/fix"
-        #output_topics:
-        gps_main: "gnss/fix"
-        gps_aux: "gnss/fix_aux"
-        kallman_type: 1
-
-dual_antenna:
-    ros__parameters:
-        name: "dual_antenna"
-        #input_topics:
-        gps_main: "gnss/fix"
-        gps_aux: "gnss/fix_aux"
-        angle_gpses: 90.0
-
-fix_n_bearing:
-    ros__parameters:
         #input_topics:
         fix: "gnss/fix"
         orientation: "compass/radians"
         units: "radians" # "degrees" or "radians"
-
-using_enu:
-    ros__parameters:
-        gps_lock_time: 5
-
-odom_n_path:
-    ros__parameters:
-        name: "odometry"
-
-transform_pub:
-    ros__parameters:
-        name: "transform_pub"
-
-cord_convert:
-    ros__parameters:
-        name: "cord_convert"
