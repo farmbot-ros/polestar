@@ -145,7 +145,7 @@ int main(int argc, char *argv[]) {
     options.allow_undeclared_parameters(true);
     options.automatically_declare_parameters_from_overrides(true);
 
-    rclcpp::Node::SharedPtr node1 = rclcpp::Node::make_shared("using_enu", options);
+    rclcpp::Node::SharedPtr node1 = rclcpp::Node::make_shared("odom_n_path", options);
     std::shared_ptr<OdomNPath> taskerrr = std::make_shared<OdomNPath>(node1);
 
     try {

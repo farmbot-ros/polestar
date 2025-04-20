@@ -67,7 +67,7 @@ def launch_setup(context, *args, **kwargs):
         ],
         output="screen",
     )
-    # nodes_array.append(transform_pub)
+    nodes_array.append(transform_pub)
 
     cord_convert = Node(
         package="farmbot_polestar",
@@ -98,7 +98,7 @@ def launch_setup(context, *args, **kwargs):
         ],
         name="base_link_to_base_footprint",
     )
-    # nodes_array.append(static_transform)
+    nodes_array.append(static_transform)
 
     return nodes_array
 
