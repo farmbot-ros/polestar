@@ -26,6 +26,7 @@ def launch_setup(context, *args, **kwargs):
             yaml.safe_load(open(param_file))["global"]["ros__parameters"],
             {"autodatum": audodatum} if audodatum != "" else {},
         ],
+        output="screen",
     )
     nodes_array.append(fix_n_bearing)
 
@@ -38,6 +39,7 @@ def launch_setup(context, *args, **kwargs):
             yaml.safe_load(open(param_file))["global"]["ros__parameters"],
             {"autodatum": audodatum} if audodatum != "" else {},
         ],
+        output="screen",
     )
     nodes_array.append(using_enu)
 
@@ -50,6 +52,7 @@ def launch_setup(context, *args, **kwargs):
             yaml.safe_load(open(param_file))["global"]["ros__parameters"],
             {"autodatum": audodatum} if audodatum != "" else {},
         ],
+        output="screen",
     )
     nodes_array.append(odom_n_path)
 
@@ -62,8 +65,9 @@ def launch_setup(context, *args, **kwargs):
             yaml.safe_load(open(param_file))["global"]["ros__parameters"],
             {"autodatum": audodatum} if audodatum != "" else {},
         ],
+        output="screen",
     )
-    nodes_array.append(transform_pub)
+    # nodes_array.append(transform_pub)
 
     cord_convert = Node(
         package="farmbot_polestar",
@@ -74,6 +78,7 @@ def launch_setup(context, *args, **kwargs):
             yaml.safe_load(open(param_file))["global"]["ros__parameters"],
             {"autodatum": audodatum} if audodatum != "" else {},
         ],
+        output="screen",
     )
     nodes_array.append(cord_convert)
 
@@ -93,13 +98,13 @@ def launch_setup(context, *args, **kwargs):
         ],
         name="base_link_to_base_footprint",
     )
-    nodes_array.append(static_transform)
+    # nodes_array.append(static_transform)
 
     return nodes_array
 
 
 def generate_launch_description():
-    namespace_arg = DeclareLaunchArgument("namespace", default_value="fbot")
+    namespace_arg = DeclareLaunchArgument("namespace", default_value="robot0")
     autodatum_arg = DeclareLaunchArgument("autodatum", default_value="")
 
     return LaunchDescription(

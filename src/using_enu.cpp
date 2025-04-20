@@ -50,8 +50,9 @@ class Gps2Enu {
         beacon_sub_ = node_->create_subscription<farmbot_interfaces::msg::Agent>(
             "beacon/rci", 10, [this](const farmbot_interfaces::msg::Agent::SharedPtr msg) {
                 my_beacon_ = *msg;
-                RCLCPP_INFO(node_->get_logger(), "Beacon [%s] recieved", my_beacon_.name.c_str());
                 set_datum(my_beacon_.zero_ref);
+                RCLCPP_INFO(node_->get_logger(), "DATUM SET TO: [%.7f, %.7f, %.7f]", datum.latitude, datum.longitude,
+                            datum.altitude);
                 beacon_sub_.reset();
             });
     }
@@ -60,7 +61,7 @@ class Gps2Enu {
     void callback(const sensor_msgs::msg::NavSatFix::ConstSharedPtr &fix) {
         curr_gps = *fix;
         if (!datum_set) {
-            RCLCPP_ERROR(node_->get_logger(), "NO DATUM SET, PLEASE LAUNCH THE BEACON NODE FIRST!");
+            RCLCPP_INFO_ONCE(node_->get_logger(), "NO DATUM SET, PLEASE LAUNCH THE BEACON NODE FIRST!");
             return;
         }
 
@@ -98,6 +99,9 @@ class Gps2Enu {
         double lat = ref.x;
         double lon = ref.y;
         double alt = ref.z;
+        datum.latitude = lat;
+        datum.longitude = lon;
+        datum.altitude = alt;
         auto ecef = concord::gps_to_ecef(lat, lon, alt);
         ecef_datum.pose.pose.position.x = std::get<0>(ecef);
         ecef_datum.pose.pose.position.y = std::get<1>(ecef);
@@ -122,6 +126,6 @@ int main(int argc, char *argv[]) {
     } catch (const std::exception &e) {
         return 1;
     }
-    // rclcpp::shutdown();
+    rclcpp::shutdown();
     return 0;
 }

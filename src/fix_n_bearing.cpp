@@ -111,6 +111,6 @@ int main(int argc, char *argv[]) {
     } catch (const std::exception &e) {
         return 1;
     }
-    // rclcpp::shutdown();
+    rclcpp::shutdown();
     return 0;
 }
