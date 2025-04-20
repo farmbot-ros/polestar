@@ -40,15 +40,6 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(concord)
 
-
-set(executables
-  fix_n_bearing
-  using_enu
-  odom_n_path
-  transform_pub
-)
-
-
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
@@ -92,25 +83,28 @@ set(dependencies_sys
   concord
 )
 
-set(executables2
+set(executables
   src/gd/fix_n_bearing.cpp
   src/using_enu.cpp
   src/odom_n_path.cpp
   src/transform_pub.cpp
 )
 
-foreach(src_file IN LISTS executables2)
+set(exec_names)
+
+foreach(src_file IN LISTS executables)
   get_filename_component(exec_name "${src_file}" NAME_WE)
   add_executable(${exec_name} "${src_file}")
   ament_target_dependencies(${exec_name} ${dependencies_ros})
   target_link_libraries(${exec_name} ${dependencies_sys})
+  list(APPEND exec_names ${exec_name})
 endforeach()
 
 
 
 
 install(TARGETS
-  ${executables}
+  ${exec_names}
   DESTINATION lib/${PROJECT_NAME}
 )
 
