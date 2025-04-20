@@ -84,9 +84,11 @@ set(dependencies_sys
 )
 
 set(executables
-  src/gd/fix_n_bearing.cpp
-  src/using_enu.cpp
-  src/odom_n_path.cpp
+  src/gnss/fix_n_bearing.cpp
+  src/gnss/using_enu.cpp
+
+  src/odom/odom_imu_fusion.cpp
+
   src/transform_pub.cpp
 )
 
