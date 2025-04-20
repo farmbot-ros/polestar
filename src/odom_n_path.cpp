@@ -25,8 +25,8 @@ class OdomNPath {
 
     nav_msgs::msg::Odometry enu_odom;
     nav_msgs::msg::Odometry odom_map;
-    nav_msgs::msg::Path path;
-    nav_msgs::msg::Path footprint;
+    nav_msgs::msg::Path base_path;
+    nav_msgs::msg::Path foot_path;
     bool reset_path = false;
     geometry_msgs::msg::PoseStamped prev_point_path;
     geometry_msgs::msg::PoseStamped prev_point_dist;
@@ -37,8 +37,8 @@ class OdomNPath {
 
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
     rclcpp::Publisher<farmbot_interfaces::msg::Float32Stamped>::SharedPtr dist_pub_;
-    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub_;
-    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr footprint_pub_;
+    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr basepath_pub_;
+    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr footpath_pub_;
     rclcpp::TimerBase::SharedPtr timer_pub_;
     rclcpp::Service<farmbot_interfaces::srv::Trigger>::SharedPtr dist_reset;
     rclcpp::Service<farmbot_interfaces::srv::Trigger>::SharedPtr path_reset;
@@ -60,14 +60,14 @@ class OdomNPath {
 
         odom_pub_ = node_->create_publisher<nav_msgs::msg::Odometry>("loc/odom", 10);
         dist_pub_ = node_->create_publisher<farmbot_interfaces::msg::Float32Stamped>("loc/dist", 10);
-        path_pub_ = node_->create_publisher<nav_msgs::msg::Path>("loc/path", 10);
-        footprint_pub_ = node_->create_publisher<nav_msgs::msg::Path>("loc/footprint", 10);
+        basepath_pub_ = node_->create_publisher<nav_msgs::msg::Path>("loc/path", 10);
+        footpath_pub_ = node_->create_publisher<nav_msgs::msg::Path>("loc/footprint", 10);
 
         timer_pub_ = node_->create_wall_timer(std::chrono::milliseconds(100), [this]() {
             odom_pub_->publish(enu_odom);
             dist_pub_->publish(cumulative_dist);
-            path_pub_->publish(path);
-            footprint_pub_->publish(footprint);
+            basepath_pub_->publish(base_path);
+            footpath_pub_->publish(foot_path);
         });
 
         dist_reset = node_->create_service<farmbot_interfaces::srv::Trigger>(
@@ -81,8 +81,8 @@ class OdomNPath {
         path_reset = node_->create_service<farmbot_interfaces::srv::Trigger>(
             "loc/path_reset", [this](const std::shared_ptr<farmbot_interfaces::srv::Trigger::Request> _request,
                                      std::shared_ptr<farmbot_interfaces::srv::Trigger::Response> _response) {
-                path.poses.clear();
-                footprint.poses.clear();
+                base_path.poses.clear();
+                foot_path.poses.clear();
                 auto req = _request;  // TODO: fix, this is a hack to get rid of unused variable warning
                 auto res = _response; // TODO: fix, this is a hack to get rid of unused variable warning
                 return;
@@ -111,8 +111,8 @@ class OdomNPath {
         pose.pose = enu_odom.pose.pose;
 
         // create path
-        path.header.frame_id = frame_id;
-        footprint.header.frame_id = frame_id;
+        base_path.header.frame_id = frame_id;
+        foot_path.header.frame_id = frame_id;
         cumulative_dist.header.frame_id = frame_id;
         distance = point_distance(prev_point_dist, pose);
         if (distance > 0.1) {
@@ -120,14 +120,14 @@ class OdomNPath {
             cumulative_dist.data += distance;
             if (distance < 1) {
                 pose.header.frame_id = frame_id;
-                path.poses.push_back(pose);
+                base_path.poses.push_back(pose);
                 pose.pose.position.z = 0;
-                footprint.poses.push_back(pose);
+                foot_path.poses.push_back(pose);
             }
         }
-        if (path.poses.size() > 100 && reset_path) {
-            path.poses.erase(path.poses.begin());
-            footprint.poses.erase(footprint.poses.begin());
+        if (base_path.poses.size() > 100 && reset_path) {
+            base_path.poses.erase(base_path.poses.begin());
+            foot_path.poses.erase(foot_path.poses.begin());
         }
     }
 
