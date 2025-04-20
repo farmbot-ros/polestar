@@ -1,17 +1,11 @@
-#include <cmath>
-#include <vector>
-
+#include "farmbot_interfaces/msg/agent.hpp"
 #include "farmbot_interfaces/msg/float32_stamped.hpp"
 #include "farmbot_interfaces/msg/float64_stamped.hpp"
-#include "farmbot_interfaces/srv/datum.hpp"
-#include "farmbot_interfaces/srv/trigger.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/nav_sat_fix.hpp"
-
-#include "message_filters/subscriber.h"
-#include "message_filters/sync_policies/approximate_time.h"
-#include "message_filters/time_synchronizer.h"
+#include <cmath>
+#include <vector>
 
 #include <concord/wgs_to_enu.hpp>
 
@@ -19,6 +13,7 @@ class Gps2Enu {
   private:
     rclcpp::Node::SharedPtr node_;
     std::string namespace_;
+    farmbot_interfaces::msg::Agent my_beacon_;
     sensor_msgs::msg::NavSatFix curr_gps;
     sensor_msgs::msg::NavSatFix datum;
     nav_msgs::msg::Odometry ecef_datum;
@@ -28,7 +23,7 @@ class Gps2Enu {
     std::string autodatum;
 
     rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr fix_sub_;
-
+    rclcpp::Subscription<farmbot_interfaces::msg::Agent>::SharedPtr beacon_sub_;
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr ecef_pub_;
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr enu_pub_;
     rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr geo_dat_pub_;
@@ -52,13 +47,20 @@ class Gps2Enu {
         enu_pub_ = node_->create_publisher<nav_msgs::msg::Odometry>("loc/enu", 10);
         ecef_datum_pub_ = node_->create_publisher<nav_msgs::msg::Odometry>("loc/ref", 10);
         geo_dat_pub_ = node_->create_publisher<sensor_msgs::msg::NavSatFix>("loc/ref/geo", 10);
+        beacon_sub_ = node_->create_subscription<farmbot_interfaces::msg::Agent>(
+            "beacon/rci", 10, [this](const farmbot_interfaces::msg::Agent::SharedPtr msg) {
+                my_beacon_ = *msg;
+                RCLCPP_INFO(node_->get_logger(), "Beacon [%s] recieved", my_beacon_.name.c_str());
+                set_datum(my_beacon_.zero_ref);
+                beacon_sub_.reset();
+            });
     }
 
   private:
     void callback(const sensor_msgs::msg::NavSatFix::ConstSharedPtr &fix) {
         curr_gps = *fix;
         if (!datum_set) {
-            RCLCPP_ERROR(node_->get_logger(), "NO DATUM SET, PLEASE SET DATUM FIRST!");
+            RCLCPP_ERROR(node_->get_logger(), "NO DATUM SET, PLEASE LAUNCH THE BEACON NODE FIRST!");
             return;
         }
 
@@ -90,18 +92,16 @@ class Gps2Enu {
         enu_pub_->publish(enu_msg);
     }
 
-    void set_datum(const sensor_msgs::msg::NavSatFix::ConstSharedPtr &ref) {
-        datum = *ref;
-        datum.header = ref->header;
-        ecef_datum.header = ref->header;
-        double lat = ref->latitude;
-        double lon = ref->longitude;
-        double alt = ref->altitude;
-        double x, y, z;
-        std::tie(x, y, z) = concord::gps_to_ecef(lat, lon, alt);
-        ecef_datum.pose.pose.position.x = x;
-        ecef_datum.pose.pose.position.y = y;
-        ecef_datum.pose.pose.position.z = z;
+    void set_datum(geometry_msgs::msg::Point ref) {
+        ecef_datum.header = curr_gps.header;
+        datum.header = curr_gps.header;
+        double lat = ref.x;
+        double lon = ref.y;
+        double alt = ref.z;
+        auto ecef = concord::gps_to_ecef(lat, lon, alt);
+        ecef_datum.pose.pose.position.x = std::get<0>(ecef);
+        ecef_datum.pose.pose.position.y = std::get<1>(ecef);
+        ecef_datum.pose.pose.position.z = std::get<2>(ecef);
         datum_set = true;
     }
 };
