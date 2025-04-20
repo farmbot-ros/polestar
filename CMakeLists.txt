@@ -92,11 +92,18 @@ set(dependencies_sys
   concord
 )
 
-foreach(executable ${executables})
-  add_executable(${executable} src/${executable}.cpp)
-  ament_target_dependencies(${executable} ${dependencies_ros})
-  target_link_libraries(${executable} ${dependencies_sys})
-  # target_compile_options(${executable} PRIVATE -Wno-deprecated-declarations -Wunused-parameter)
+set(executables2
+  src/gd/fix_n_bearing.cpp
+  src/using_enu.cpp
+  src/odom_n_path.cpp
+  src/transform_pub.cpp
+)
+
+foreach(src_file IN LISTS executables2)
+  get_filename_component(exec_name "${src_file}" NAME_WE)
+  add_executable(${exec_name} "${src_file}")
+  ament_target_dependencies(${exec_name} ${dependencies_ros})
+  target_link_libraries(${exec_name} ${dependencies_sys})
 endforeach()
 
 
