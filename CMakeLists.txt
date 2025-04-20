@@ -42,14 +42,10 @@ FetchContent_MakeAvailable(concord)
 
 
 set(executables
-  dual_antenna
-  single_antenna
   fix_n_bearing
-
   using_enu
   odom_n_path
   transform_pub
-  cord_convert
 )
 
 
