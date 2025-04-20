@@ -31,7 +31,7 @@ class TransformPub {
     bool odom_to_basef;
     bool basef_to_basel;
 
-    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr to_map_, to_base_, to_foot_, to_odom_;
+    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr world_to_map_, foot_to_base_, odom_to_foot_, mapt_to_odom_;
     std::unique_ptr<tf2_ros::TransformBroadcaster> base_tf, foot_tf;
     std::unique_ptr<tf2_ros::StaticTransformBroadcaster> odom_tf, map_tf;
 
@@ -61,14 +61,14 @@ class TransformPub {
         odom_tf = std::make_unique<tf2_ros::StaticTransformBroadcaster>(node_);
         map_tf = std::make_unique<tf2_ros::StaticTransformBroadcaster>(node_);
 
-        to_base_ = node_->create_subscription<nav_msgs::msg::Odometry>(
-            "loc/odom", 10, [this](const nav_msgs::msg::Odometry::ConstSharedPtr &odom) { base_2_foot(odom); });
-        to_foot_ = node_->create_subscription<nav_msgs::msg::Odometry>(
-            "loc/odom", 10, [this](const nav_msgs::msg::Odometry::ConstSharedPtr &odom) { foot_2_odom(odom); });
-        to_odom_ = node_->create_subscription<nav_msgs::msg::Odometry>(
-            "loc/odom", 10, [this](const nav_msgs::msg::Odometry::ConstSharedPtr &odom) { odom_2_map(odom); });
-        to_map_ = node_->create_subscription<nav_msgs::msg::Odometry>(
-            "loc/ref", 10, [this](const nav_msgs::msg::Odometry::ConstSharedPtr &ecef) { map_2_world(ecef); });
+        world_to_map_ = node_->create_subscription<nav_msgs::msg::Odometry>(
+            "loc/ref", 10, [this](const nav_msgs::msg::Odometry::ConstSharedPtr &ecef) { world_2_map(ecef); });
+        mapt_to_odom_ = node_->create_subscription<nav_msgs::msg::Odometry>(
+            "loc/odom", 10, [this](const nav_msgs::msg::Odometry::ConstSharedPtr &odom) { map_2_odom(odom); });
+        odom_to_foot_ = node_->create_subscription<nav_msgs::msg::Odometry>(
+            "loc/odom", 10, [this](const nav_msgs::msg::Odometry::ConstSharedPtr &odom) { odom_2_foot(odom); });
+        foot_to_base_ = node_->create_subscription<nav_msgs::msg::Odometry>(
+            "loc/odom", 10, [this](const nav_msgs::msg::Odometry::ConstSharedPtr &odom) { foot_2_base(odom); });
     }
 
   private:
@@ -83,7 +83,57 @@ class TransformPub {
         stat.summary(diagnostic_msgs::msg::DiagnosticStatus::OK, "Transforms are A OK!");
     }
 
-    void base_2_foot(const nav_msgs::msg::Odometry::ConstSharedPtr &odom) {
+    void world_2_map(const nav_msgs::msg::Odometry::ConstSharedPtr &ecef) {
+        auto x = world_ref_ == "datum" ? 0.0 : ecef->pose.pose.position.x;
+        auto y = world_ref_ == "datum" ? 0.0 : ecef->pose.pose.position.y;
+        geometry_msgs::msg::TransformStamped stat_t;
+        stat_t.header.stamp = node_->get_clock()->now();
+        stat_t.header.frame_id = "world";
+        stat_t.child_frame_id = namespace_ + "/map";
+        stat_t.transform.translation.x = x;
+        stat_t.transform.translation.y = y;
+        stat_t.transform.translation.z = 0.0;
+        stat_t.transform.rotation.x = 0.0;
+        stat_t.transform.rotation.y = 0.0;
+        stat_t.transform.rotation.z = 0.0;
+        stat_t.transform.rotation.w = 1.0;
+        map_tf->sendTransform(stat_t);
+        world_to_map = true;
+    }
+
+    void map_2_odom(const nav_msgs::msg::Odometry::ConstSharedPtr &odom) {
+        geometry_msgs::msg::TransformStamped stat_t;
+        stat_t.header.stamp = node_->get_clock()->now();
+        stat_t.child_frame_id = namespace_ + "/odom";
+        stat_t.header.frame_id = namespace_ + "/map";
+        stat_t.transform.translation.x = 0.0;
+        stat_t.transform.translation.y = 0.0;
+        stat_t.transform.translation.z = 0.0;
+        stat_t.transform.rotation.x = 0.0;
+        stat_t.transform.rotation.y = 0.0;
+        stat_t.transform.rotation.z = 0.0;
+        stat_t.transform.rotation.w = 1.0;
+        odom_tf->sendTransform(stat_t);
+        map_to_odom = true;
+    }
+
+    void odom_2_foot(const nav_msgs::msg::Odometry::ConstSharedPtr &odom) {
+        geometry_msgs::msg::TransformStamped dyna_t;
+        dyna_t.header.stamp = odom->header.stamp;
+        dyna_t.child_frame_id = namespace_ + "/base_footprint";
+        dyna_t.header.frame_id = namespace_ + "/odom";
+        dyna_t.transform.translation.x = odom->pose.pose.position.x;
+        dyna_t.transform.translation.y = odom->pose.pose.position.y;
+        dyna_t.transform.translation.z = 0.0;
+        dyna_t.transform.rotation.x = odom->pose.pose.orientation.x;
+        dyna_t.transform.rotation.y = odom->pose.pose.orientation.y;
+        dyna_t.transform.rotation.z = odom->pose.pose.orientation.z;
+        dyna_t.transform.rotation.w = odom->pose.pose.orientation.w;
+        base_tf->sendTransform(dyna_t);
+        basef_to_basel = true;
+    }
+
+    void foot_2_base(const nav_msgs::msg::Odometry::ConstSharedPtr &odom) {
         geometry_msgs::msg::TransformStamped dyna_t;
         dyna_t.header.stamp = node_->get_clock()->now();
         dyna_t.child_frame_id = namespace_ + "/base_link";
@@ -100,55 +150,6 @@ class TransformPub {
         dyna_t.transform.rotation.w = 1.0;
         foot_tf->sendTransform(dyna_t);
         odom_to_basef = true;
-    }
-    void foot_2_odom(const nav_msgs::msg::Odometry::ConstSharedPtr &odom) {
-        geometry_msgs::msg::TransformStamped dyna_t;
-        dyna_t.header.stamp = odom->header.stamp;
-        dyna_t.child_frame_id = namespace_ + "/base_footprint";
-        dyna_t.header.frame_id = namespace_ + "/odom";
-        dyna_t.transform.translation.x = odom->pose.pose.position.x;
-        dyna_t.transform.translation.y = odom->pose.pose.position.y;
-        dyna_t.transform.translation.z = 0.0;
-        dyna_t.transform.rotation.x = odom->pose.pose.orientation.x;
-        dyna_t.transform.rotation.y = odom->pose.pose.orientation.y;
-        dyna_t.transform.rotation.z = odom->pose.pose.orientation.z;
-        dyna_t.transform.rotation.w = odom->pose.pose.orientation.w;
-        base_tf->sendTransform(dyna_t);
-        basef_to_basel = true;
-    }
-
-    void odom_2_map(const nav_msgs::msg::Odometry::ConstSharedPtr &odom) {
-        geometry_msgs::msg::TransformStamped stat_t;
-        stat_t.header.stamp = node_->get_clock()->now();
-        stat_t.child_frame_id = namespace_ + "/odom";
-        stat_t.header.frame_id = namespace_ + "/map";
-        stat_t.transform.translation.x = 0.0;
-        stat_t.transform.translation.y = 0.0;
-        stat_t.transform.translation.z = 0.0;
-        stat_t.transform.rotation.x = 0.0;
-        stat_t.transform.rotation.y = 0.0;
-        stat_t.transform.rotation.z = 0.0;
-        stat_t.transform.rotation.w = 1.0;
-        odom_tf->sendTransform(stat_t);
-        map_to_odom = true;
-    }
-
-    void map_2_world(const nav_msgs::msg::Odometry::ConstSharedPtr &ecef) {
-        auto x = world_ref_ == "datum" ? 0.0 : ecef->pose.pose.position.x;
-        auto y = world_ref_ == "datum" ? 0.0 : ecef->pose.pose.position.y;
-        geometry_msgs::msg::TransformStamped stat_t;
-        stat_t.header.stamp = node_->get_clock()->now();
-        stat_t.child_frame_id = namespace_ + "/map";
-        stat_t.header.frame_id = "world";
-        stat_t.transform.translation.x = x;
-        stat_t.transform.translation.y = y;
-        stat_t.transform.translation.z = 0.0;
-        stat_t.transform.rotation.x = 0.0;
-        stat_t.transform.rotation.y = 0.0;
-        stat_t.transform.rotation.z = 0.0;
-        stat_t.transform.rotation.w = 1.0;
-        map_tf->sendTransform(stat_t);
-        world_to_map = true;
     }
 };
 
