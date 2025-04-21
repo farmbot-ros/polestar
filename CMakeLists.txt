@@ -102,9 +102,6 @@ foreach(src_file IN LISTS executables)
   list(APPEND exec_names ${exec_name})
 endforeach()
 
-
-
-
 install(TARGETS
   ${exec_names}
   DESTINATION lib/${PROJECT_NAME}

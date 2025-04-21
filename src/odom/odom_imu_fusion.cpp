@@ -34,11 +34,12 @@ class OdomImuFusion {
     rclcpp::Time last_time_;
 
   public:
-    OdomImuFusion(rclcpp::Node::SharedPtr node) : node_(node) {
+    OdomImuFusion(rclcpp::Node::SharedPtr node)
+        : node_(node), odom_sub_(node, "wheel/odom"), imu_sub_(node, "imu/data") {
         RCLCPP_INFO(node_->get_logger(), "Starting Odom-IMU Fusion Node");
 
         // Publisher
-        fused_odom_pub_ = node_->create_publisher<nav_msgs::msg::Odometry>("fused/odom", 10);
+        fused_odom_pub_ = node_->create_publisher<nav_msgs::msg::Odometry>("loc/fused/odom", 10);
 
         // Initialize EKF parameters
         x_.setZero();

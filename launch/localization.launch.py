@@ -43,19 +43,6 @@ def launch_setup(context, *args, **kwargs):
     )
     nodes_array.append(using_enu)
 
-    odom_n_path = Node(
-        package="farmbot_polestar",
-        namespace=namespace,
-        executable="odom_n_path",
-        name="odom_n_path",
-        parameters=[
-            yaml.safe_load(open(param_file))["global"]["ros__parameters"],
-            {"autodatum": audodatum} if audodatum != "" else {},
-        ],
-        output="screen",
-    )
-    nodes_array.append(odom_n_path)
-
     transform_pub = Node(
         package="farmbot_polestar",
         namespace=namespace,
@@ -68,19 +55,6 @@ def launch_setup(context, *args, **kwargs):
         output="screen",
     )
     nodes_array.append(transform_pub)
-
-    cord_convert = Node(
-        package="farmbot_polestar",
-        namespace=namespace,
-        executable="cord_convert",
-        name="cord_convert",
-        parameters=[
-            yaml.safe_load(open(param_file))["global"]["ros__parameters"],
-            {"autodatum": audodatum} if audodatum != "" else {},
-        ],
-        output="screen",
-    )
-    nodes_array.append(cord_convert)
 
     static_transform = Node(
         package="tf2_ros",
