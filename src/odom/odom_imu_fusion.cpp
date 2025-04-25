@@ -111,31 +111,30 @@ class OdomImuFusion : public rclcpp::Node {
 
     nav_msgs::msg::Odometry odom_msg_;
     sensor_msgs::msg::Imu imu_msg_;
-    bool got_odom_{false}, got_imu_{false};
     rclcpp::Time last_stamp_;
 
   public:
     OdomImuFusion() : Node("odom_imu_fusion") {
         fused_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("loc/odometry", 10);
 
-        odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>("wheel/odom", 10, [this](auto msg) {
-            odom_msg_ = *msg;
-            got_odom_ = true;
-        });
+        odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>("wheel/odom", 10,
+                                                                       [this](nav_msgs::msg::Odometry::SharedPtr msg) {
+                                                                           odom_msg_ = *msg;
+                                                                           loop();
+                                                                       });
 
-        imu_sub_ = this->create_subscription<sensor_msgs::msg::Imu>("imu/data", 10, [this](auto msg) {
-            imu_msg_ = *msg;
-            got_imu_ = true;
-        });
+        imu_sub_ = this->create_subscription<sensor_msgs::msg::Imu>("imu/data", 10,
+                                                                    [this](sensor_msgs::msg::Imu::SharedPtr msg) {
+                                                                        imu_msg_ = *msg;
+                                                                        update();
+                                                                    });
 
         last_stamp_ = this->now();
-        timer_ = this->create_wall_timer(std::chrono::milliseconds(10), std::bind(&OdomImuFusion::loop, this));
+        // timer_ = this->create_wall_timer(std::chrono::milliseconds(10), std::bind(&OdomImuFusion::loop, this));
     }
 
   private:
     void loop() {
-        if (!got_odom_ || !got_imu_) return;
-
         rclcpp::Time stamp = odom_msg_.header.stamp;
         double dt = (stamp - last_stamp_).seconds();
         if (dt <= 0.0) dt = 1e-3;
@@ -145,6 +144,14 @@ class OdomImuFusion : public rclcpp::Node {
         double w_odom = odom_msg_.twist.twist.angular.z;
         ekf_.predict(v_odom, w_odom, dt);
 
+        // 4) Correct altitude from wheel odometry
+        ekf_.updateZ(odom_msg_.pose.pose.position.z);
+
+        publish(stamp);
+        last_stamp_ = stamp;
+    }
+
+    void update() {
         // 2) Correct yaw from IMU orientation
         tf2::Quaternion q(imu_msg_.orientation.x, imu_msg_.orientation.y, imu_msg_.orientation.z,
                           imu_msg_.orientation.w);
@@ -155,12 +162,6 @@ class OdomImuFusion : public rclcpp::Node {
         // 3) Correct acceleration (compensate gravity)
         double acc_x = imu_msg_.linear_acceleration.x - 9.81 * std::sin(pitch);
         ekf_.updateAccel(acc_x);
-
-        // 4) Correct altitude from wheel odometry
-        ekf_.updateZ(odom_msg_.pose.pose.position.z);
-
-        publish(stamp);
-        last_stamp_ = stamp;
     }
 
     void publish(const rclcpp::Time &stamp) {
